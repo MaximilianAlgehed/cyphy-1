@@ -22,7 +22,8 @@ type S a = [a]
 (|>) :: S a -> S a -> S a
 (x:_) |> (_:xs) = x:xs
 
--- delay the stream by one step, copying the first value. NOTE: this will not terminate in a loop
+-- delay the stream by one step, copying the first value.
+-- NOTE: this will not terminate in a loop, you MUST also use |> in that case!
 pre :: S a -> S a
 pre xs = xs |-> xs
 
@@ -111,6 +112,27 @@ integ :: Num a => DerS a -> S a
 integ (DerS d r) = x
  where
   x = (pre x + d) `change` r
+
+--------------------------------------------------------------------------------
+-- some examples
+
+{-
+In Zelus, you write:
+
+  der x = <expr>
+
+In Zelus.hs, we write instead:
+
+  x = integ <expr>
+-}
+
+-- count upwards by 1 from 0
+example1 = integ (1 `in1t` 0)
+
+-- count upwards by 1 from 0, resetting to 3 every 10 steps
+example2 = integ (1 `in1t` 0 `reset` (3 `when` every 10))
+
+every k  = cycle (replicate (k-1) False ++ [True])
 
 --------------------------------------------------------------------------------
 
