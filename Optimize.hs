@@ -17,7 +17,7 @@ opti f (x0,x1) = search x0 (f x0) x1 (f x1)
     | ma >= mb  = search x0 y0 xb yb
     | otherwise = search xa ya x1 y1
    where
-    k    = 3
+    k    = 6
     t    = 0.33 / fromIntegral k
     xyas = (x0,y0) : take k [ (x,f x) | d <- [t,t+t..], let x = (1-d)*x0 + d*x1 ]
     xybs = (x1,y1) : take k [ (x,f x) | d <- [t,t+t..], let x = d*x0 + (1-d)*x1 ]

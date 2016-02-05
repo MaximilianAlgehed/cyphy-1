@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Zelus where
 
-import Control.Applicative( (<|>) )
+import Control.Applicative( Alternative(..) )
 
 import Test.QuickCheck
 import Test.QuickCheck.Poly
@@ -13,6 +13,10 @@ type S a = [a]
 
 --------------------------------------------------------------------------------
 -- basic functions on streams
+
+-- constant stream
+val :: a -> S a
+val = repeat
 
 -- delay the second stream by one step, and use the initial value from the first
 (|->) :: S a -> S a -> S a
@@ -35,6 +39,9 @@ prop_PreFbyDelay xs (ys :: S A) =
 
 --------------------------------------------------------------------------------
 -- other useful functions on streams
+
+start :: S Bool
+start = val True |> val False
 
 deriv :: Num a => S a -> S a
 deriv x = x - pre x
@@ -65,11 +72,11 @@ instance Num a => Num [a] where
   (*)    = zipWith (*)
   abs    = map abs
   signum = map signum
-  fromInteger n = let x = fromInteger n in repeat x
+  fromInteger n = let x = fromInteger n in val x
 
 instance Fractional a => Fractional [a] where
   (/) = zipWith (/)
-  fromRational q = let x = fromRational q in repeat x
+  fromRational q = let x = fromRational q in val x
 
 --------------------------------------------------------------------------------
 -- event streams
@@ -77,7 +84,7 @@ instance Fractional a => Fractional [a] where
 newtype E a = E{ unE :: S (Maybe a) }
 
 instance Applicative E where
-  pure x        = E (repeat (Just x))
+  pure x        = E (val (Just x))
   E fs <*> E xs = E (zipWith app fs xs)
    where
     app (Just f) (Just x) = Just (f x)
@@ -86,9 +93,12 @@ instance Applicative E where
 instance Functor E where
   fmap f (E xs) = E (map (fmap f) xs)
 
+instance Alternative E where
+  empty       = E (val Nothing)
+  E x <|> E y = E (zipWith (<|>) x y)
+
 when :: S a -> S Bool -> E a
-(_:xs) `when` (False:bs) = E (Nothing : unE (xs `when` bs))
-(x:xs) `when` (True :bs) = E (Just x  : unE (xs `when` bs))
+x `when` b = E (b ? (Just <$> x,val Nothing))
 
 change :: S a -> E a -> S a
 ~(_:xs) `change` E (Just x :rs) = x : change xs (E rs)
@@ -103,15 +113,19 @@ data DerS a = DerS
   }
 
 in1t :: S a -> S a -> DerS a
-ds `in1t` (x:_) = DerS ds (E (Just x : repeat Nothing))
+d `in1t` x = DerS d (x `when` start)
 
 reset :: DerS a -> E a -> DerS a
-DerS ds (E rs) `reset` (E rs') = DerS ds (E (zipWith (<|>) rs rs'))
+DerS d r `reset` r' = DerS d (r <|> r')
 
 integ :: Num a => DerS a -> S a
 integ (DerS d r) = x
  where
-  x = (pre x + d) `change` r
+  --x = (pre x + d) `change` r
+  x = (pre x `change` r) + d
+
+integral :: Num a => S a -> S a
+integral dx = integ (dx `in1t` 0)
 
 --------------------------------------------------------------------------------
 -- some examples
