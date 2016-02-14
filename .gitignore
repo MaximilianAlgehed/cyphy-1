@@ -1,0 +1,29 @@
+# Cabal and Stack files
+# -----------------------
+/cyphy.cabal
+/stack.yaml
+.stack-work/
+dist
+cabal-dev
+.cabal-sandbox/
+cabal.sandbox.config
+
+# Haskell temporary files
+# -----------------------
+*.o
+*.hi
+*.chi
+*.chs.h
+*.dyn_o
+*.dyn_hi
+.hpc
+.hsenv
+*.prof
+*.aux
+*.hp
+*.swp
+
+# Emacs temporary files
+# -----------------------
+*~
+*#*
