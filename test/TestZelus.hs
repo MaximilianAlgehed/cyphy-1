@@ -1,19 +1,26 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module TestZelus where
 
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import Test.QuickCheck
+import Test.QuickCheck.Poly
 
 import Zelus
 
 tests :: TestTree
 tests = testGroup "Zelus"
-  [ testProperty "Up and down not true at the same time" prop_notUpAndDown
+  [ testProperty "Pre followed by override equals delay" prop_PreFbyDelay
+  , testProperty "Up and down not true at the same time" prop_notUpAndDown
   , testProperty "Advance and delay a stream equals the original" prop_nextPre
   , testProperty "Derivative of linear function is constant" prop_linearDeriv
   , testProperty "Derivative of square function is increasing" prop_squareDeriv
   ]
+
+prop_PreFbyDelay xs (ys :: S A) =
+  not (null xs) && not (null ys) ==>
+    (xs |> pre ys) == (xs |-> ys)
 
 prop_notUpAndDown :: S Int -> Bool
 prop_notUpAndDown x = not . or $ (up x) &&? (down x)

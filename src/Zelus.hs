@@ -1,10 +1,6 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 module Zelus where
 
 import Control.Applicative( Alternative(..) )
-
-import Test.QuickCheck
-import Test.QuickCheck.Poly
 
 --------------------------------------------------------------------------------
 -- streams
@@ -34,12 +30,6 @@ pre xs = xs |-> xs
 -- | Advance a stream by a single step by dropping its first value.
 next :: S a -> S a
 next = tail
-
--- some properties, for documentation
-
-prop_PreFbyDelay xs (ys :: S A) =
-  not (null xs) && not (null ys) ==>
-    (xs |> pre ys) == (xs |-> ys)
 
 --------------------------------------------------------------------------------
 -- other useful functions on streams
