@@ -53,6 +53,13 @@ down x = x <? pre x
 (?) :: S Bool -> (S a, S a) -> S a
 c ? (x,y) = [ if c_ then x_ else y_ | (c_,(x_,y_)) <- c `zip` (x `zip` y) ]
 
+nots :: S Bool -> S Bool
+nots = fmap not
+
+(&&?), (||?) :: S Bool -> S Bool -> S Bool
+(&&?) = zipWith (&&)
+(||?) = zipWith (||)
+
 (>=?), (>?), (<?), (<=?) :: Ord a => S a -> S a -> S Bool
 (>=?) = zipWith (>=)
 (>?)  = zipWith (>)
@@ -149,4 +156,3 @@ example2 = integ (1 `in1t` 0 `reset` (3 `when` every 10))
 every k  = cycle (replicate (k-1) False ++ [True])
 
 --------------------------------------------------------------------------------
-
