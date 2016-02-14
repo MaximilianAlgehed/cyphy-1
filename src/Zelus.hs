@@ -31,6 +31,10 @@ val = repeat
 pre :: S a -> S a
 pre xs = xs |-> xs
 
+-- | Advance a stream by a single step by dropping its first value.
+next :: S a -> S a
+next = tail
+
 -- some properties, for documentation
 
 prop_PreFbyDelay xs (ys :: S A) =
@@ -44,7 +48,7 @@ start :: S Bool
 start = val True |> val False
 
 deriv :: Num a => S a -> S a
-deriv x = x - pre x
+deriv x = next x - x
 
 up, down :: Ord a => S a -> S Bool
 up   x = x >? pre x
