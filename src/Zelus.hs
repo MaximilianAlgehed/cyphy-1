@@ -20,14 +20,14 @@ val = repeat
 
 -- override the initial value of the second stream using the first
 (|>) :: S a -> S a -> S a
-(x:_) |> (_:xs) = x:xs
+(x:_) |> ~(_:xs) = x:xs
 
 -- delay the stream by one step, copying the first value.
 -- NOTE: this will not terminate in a loop, you MUST also use |> in that case!
 pre :: S a -> S a
 pre xs = xs |-> xs
 
--- | Advance a stream by a single step by dropping its first value.
+-- | Advance a stream by a single step by dropping its first value. NOTE: unsafe Zelus :)
 next :: S a -> S a
 next = tail
 
@@ -38,7 +38,7 @@ start :: S Bool
 start = val True |> val False
 
 deriv :: Num a => S a -> S a
-deriv x = next x - x
+deriv x = x - pre x -- next x - x
 
 up, down :: Ord a => S a -> S Bool
 up   x = x >? pre x
@@ -117,13 +117,13 @@ in1t :: S a -> S a -> DerS a
 d `in1t` x = DerS d (x `when` start)
 
 reset :: DerS a -> E a -> DerS a
-DerS d r `reset` r' = DerS d (r <|> r')
+DerS d r `reset` r' = DerS d (r' <|> r)
 
 integ :: Num a => DerS a -> S a
 integ (DerS d r) = x
  where
-  --x = (pre x + d) `change` r
-  x = (pre x `change` r) + d
+  x = (pre x + d) `change` r
+  --x = (pre x `change` r) + d
 
 integral :: Num a => S a -> S a
 integral dx = integ (dx `in1t` 0)
