@@ -79,6 +79,21 @@ instance Fractional a => Fractional [a] where
   (/) = zipWith (/)
   fromRational q = let x = fromRational q in val x
 
+instance Floating a => Floating [a] where
+  pi    = val pi
+  exp   = map exp
+  log   = map log
+  sin   = map sin
+  cos   = map cos
+  asin  = map asin
+  acos  = map acos
+  atan  = map atan
+  sinh  = map sinh
+  cosh  = map cosh
+  asinh = map asinh
+  acosh = map acosh
+  atanh = map atanh
+
 --------------------------------------------------------------------------------
 -- event streams
 
