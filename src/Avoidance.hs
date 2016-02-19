@@ -40,10 +40,14 @@ data Plane = Plane Double (Double,Double)
 
 instance Arbitrary Plane where
   arbitrary =
-    do angle <- choose (0,2*pi)
-       x0    <- choose (0,1000)
-       y0    <- choose (0,1000)
+    do x0 <- choose (0,wx)
+       y0 <- choose (0,wy)
+       --let angle = atan (((wy/2)-y0)/((wx/2)-x0))
+       angle <- choose (0,2*pi)
        return (Plane angle (x0,y0))
+   where
+    wx = 500
+    wy = 500  
 
   shrink (Plane angle (x0,y0)) = []
   {-
@@ -52,7 +56,7 @@ instance Arbitrary Plane where
     [ Plane angle (x0,y0') | y0'    <- shrink y0 ]
   -}
 
-main = quickCheck prop_Avoidance
+main = quickCheckWith stdArgs{ maxSuccess = 1000 } prop_Avoidance
 
 prop_Avoidance (Plane anglea0 (xa0,ya0), Plane angleb0 (xb0,yb0)) =
   whenFail (plot "airplane" n
@@ -71,7 +75,7 @@ prop_Avoidance (Plane anglea0 (xa0,ya0), Plane angleb0 (xb0,yb0)) =
   distance = sqrt ((xa-xb)^2 + (ya-yb)^2)
 
   avoid = val False |-> (distance <=? 100)
-  collision = distance <=? 20
+  collision = distance <=? 10
 
   xc = [ (xa+xb) / 2 | (c,(xa,xb)) <- take n collision `zip` (xa `zip` xb), c ]
   yc = [ (ya+yb) / 2 | (c,(ya,yb)) <- take n collision `zip` (ya `zip` yb), c ]
