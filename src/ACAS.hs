@@ -25,10 +25,10 @@ active :: S Double -- ^ Distance to offending aircraft.
        -> S Double -- ^ Resulting course correction.
 active (d:ds) acc =
     if acc > pi
-    then left : inactive ds
-    else omega : active ds (acc+omega)
+    then right : inactive ds
+    else -omega : active ds (acc+omega)
   where
-    left  = -pi/2
+    right = pi/2
     omega = 0.01
 
 -- | Plant modelling the aircraft.
