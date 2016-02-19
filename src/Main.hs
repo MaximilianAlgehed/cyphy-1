@@ -4,6 +4,10 @@ import Zelus
 import Optimize
 import Plot
 
+import Data.List( nub, sortOn )
+import Test.QuickCheck
+import Test.QuickCheck.Modifiers
+
 --------------------------------------------------------------------------------
 -- heater + controller
 

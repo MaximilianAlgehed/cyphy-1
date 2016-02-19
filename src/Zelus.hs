@@ -1,6 +1,13 @@
 module Zelus where
 
 import Control.Applicative( Alternative(..) )
+import Data.List( sortOn )
+
+infixr 0 >--, -->
+infix  1 ?
+infixr 2 ||?
+infixr 3 &&?
+infix  4 >=?, <=?, >?, <?, ==?, /=?
 
 --------------------------------------------------------------------------------
 -- streams
@@ -47,8 +54,8 @@ down x = x <? pre x
 (?) :: S Bool -> (S a, S a) -> S a
 c ? (x,y) = [ if c_ then x_ else y_ | (c_,(x_,y_)) <- c `zip` (x `zip` y) ]
 
-nots :: S Bool -> S Bool
-nots = fmap not
+nt :: S Bool -> S Bool
+nt = fmap not
 
 (&&?), (||?) :: S Bool -> S Bool -> S Bool
 (&&?) = zipWith (&&)
@@ -64,6 +71,10 @@ nots = fmap not
 (==?) = zipWith (==)
 (/=?) = zipWith (/=)
 
+mn, mx :: Ord a => S a -> S a -> S a
+mn = zipWith min
+mx = zipWith max
+
 --------------------------------------------------------------------------------
 -- numeric functions on streams
 
@@ -78,6 +89,31 @@ instance Num a => Num [a] where
 instance Fractional a => Fractional [a] where
   (/) = zipWith (/)
   fromRational q = let x = fromRational q in val x
+
+instance Floating a => Floating [a] where
+  exp     = fmap exp
+  log     = fmap log
+  sqrt    = fmap sqrt
+  (**)    = zipWith (**)
+  logBase = zipWith logBase
+
+  pi    = val pi
+
+  sin   = fmap sin
+  cos   = fmap cos
+  tan   = fmap tan
+
+  asin  = fmap asin
+  acos  = fmap acos
+  atan  = fmap atan
+
+  sinh  = fmap sinh
+  cosh  = fmap cosh
+  tanh  = fmap tanh
+
+  asinh = fmap asinh
+  acosh = fmap acosh
+  atanh = fmap atanh
 
 --------------------------------------------------------------------------------
 -- event streams
@@ -127,6 +163,55 @@ integ (DerS d r) = x
 
 integral :: Num a => S a -> S a
 integral dx = integ (dx `in1t` 0)
+
+--------------------------------------------------------------------------------
+-- automata
+
+automaton :: Eq a => [(a,S Bool,a)] -> S a
+automaton ts@((s0,_,_):_) = s
+ where
+  s = val s0 |-> trans ts
+  
+  trans []             = s
+  trans ((s1,t,s2):ts) = s ==? val s1 &&? t ? (val s2, trans ts)
+
+-- cute syntax
+(-->) :: a -> b -> (a,b)
+x --> y = (x,y)
+
+(>--) :: a -> (b,c) -> (a,b,c)
+x >-- (y,z) = (x,y,z)
+
+took :: Eq a => S a -> (a,a) -> S Bool
+took s (x,y) = pre s ==? val x &&? s ==? val y 
+
+--------------------------------------------------------------------------------
+-- properties
+
+for :: Int -> S Bool -> Bool
+for n xs = and (take n xs)
+
+shrinkFloat :: (Ord a, RealFrac a) => a -> [a]
+shrinkFloat x =
+  filter smaller $ sortOn abs $
+  [ r
+  , r+1
+  , r * 0.5
+  , x * 0.5
+  , x * 0.75
+  , x * 0.9
+  ] ++
+  [ fromIntegral (floor (x * k)) / k
+  | k <- [10,100,1000,1000,10000,100000,1000000]
+  ]
+ where
+  r = fromIntegral (floor x)
+
+  smaller y
+    | 0 <= y && y < x = True
+    | y <  0 && x < y = True
+    | fromIntegral (floor y) == y && r /= x = True
+    | otherwise       = False
 
 --------------------------------------------------------------------------------
 -- some examples
