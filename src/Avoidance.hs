@@ -2,6 +2,7 @@ module Main where
 
 import Zelus
 import Plot
+import qualified VBool as V
 import Test.QuickCheck
 
 data Mode = Before | Dance | After
@@ -46,8 +47,8 @@ instance Arbitrary Plane where
        angle <- choose (0,2*pi)
        return (Plane angle (x0,y0))
    where
-    wx = 500
-    wy = 500  
+    wx = 700
+    wy = 700  
 
   shrink (Plane angle (x0,y0)) = []
   {-
@@ -74,8 +75,33 @@ prop_Avoidance (Plane anglea0 (xa0,ya0), Plane angleb0 (xb0,yb0)) =
 
   distance = sqrt ((xa-xb)^2 + (ya-yb)^2)
 
+  avoid = val False |-> (distance <=? 150)
+  collision = distance <=? 5
+
+  xc = [ (xa+xb) / 2 | (c,(xa,xb)) <- take n collision `zip` (xa `zip` xb), c ]
+  yc = [ (ya+yb) / 2 | (c,(ya,yb)) <- take n collision `zip` (ya `zip` yb), c ]
+
+for' n xs = foldr (V.&&.) V.true (take n xs)
+
+prop_Avoidance' (Plane anglea0 (xa0,ya0), Plane angleb0 (xb0,yb0)) =
+  whenFail (plot "airplane" n
+            [ ("A", (xa,ya))
+            , ("B", (xb,yb))
+            , ("C", (xc,yc))
+            ]) $
+  V.trueness
+  (for' 100 (map V.vbool $ nt avoid) V.=>.
+     for' n (map V.vbool $ nt collision)) >= 1
+ where
+  n = 10000
+ 
+  (xa,ya) = airplane anglea0 (xa0,ya0) avoid
+  (xb,yb) = airplane angleb0 (xb0,yb0) avoid
+
+  distance = sqrt ((xa-xb)^2 + (ya-yb)^2)
+
   avoid = val False |-> (distance <=? 100)
-  collision = distance <=? 10
+  collision = distance <=? 5
 
   xc = [ (xa+xb) / 2 | (c,(xa,xb)) <- take n collision `zip` (xa `zip` xb), c ]
   yc = [ (ya+yb) / 2 | (c,(ya,yb)) <- take n collision `zip` (ya `zip` yb), c ]
