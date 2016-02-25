@@ -83,6 +83,7 @@ prop_Avoidance (Plane anglea0 (xa0,ya0), Plane angleb0 (xb0,yb0)) =
 
 for' n xs = foldr (V.&&.) V.true (take n xs)
 
+{-
 prop_Avoidance' (Plane anglea0 (xa0,ya0), Plane angleb0 (xb0,yb0)) =
   whenFail (plot "airplane" n
             [ ("A", (xa,ya))
@@ -105,4 +106,5 @@ prop_Avoidance' (Plane anglea0 (xa0,ya0), Plane angleb0 (xb0,yb0)) =
 
   xc = [ (xa+xb) / 2 | (c,(xa,xb)) <- take n collision `zip` (xa `zip` xb), c ]
   yc = [ (ya+yb) / 2 | (c,(ya,yb)) <- take n collision `zip` (ya `zip` yb), c ]
+-}
 
