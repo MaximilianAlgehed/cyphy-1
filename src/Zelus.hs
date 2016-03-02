@@ -164,6 +164,17 @@ integ (DerS d r) = x
 integral :: Num a => S a -> S a
 integral dx = integ (dx `in1t` 0)
 
+rk4 :: Fractional a => (a -> a -> a) -> S a -> a -> S a
+rk4 f tn x0 = x
+  where
+    x  = xn + k1/6 + k2/3 + k3/3 + k4/6
+    xn = val x0 |-> x
+    dt = tn - pre tn
+    k1 = dt * zipWith f xn tn
+    k2 = dt * zipWith f (xn + k1/2) (tn + dt/2)
+    k3 = dt * zipWith f (xn + k2/2) (tn + dt/2)
+    k4 = dt * zipWith f (xn + k3)   (tn + dt)
+
 --------------------------------------------------------------------------------
 -- automata
 
