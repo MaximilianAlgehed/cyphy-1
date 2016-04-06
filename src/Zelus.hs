@@ -1,3 +1,5 @@
+{-# LANGUAGE ImplicitParams #-}
+
 module Zelus where
 
 import Control.Applicative( Alternative(..) )
@@ -155,13 +157,19 @@ d `in1t` x = DerS d (x `when` start)
 reset :: DerS a -> E a -> DerS a
 DerS d r `reset` r' = DerS d (r' <|> r)
 
-integ :: Num a => DerS a -> S a
-integ (DerS d r) = x
- where
-  x = (pre x + d) `change` r
-  --x = (pre x `change` r) + d
+--integ :: Num a => DerS a -> S a
+--integ (DerS d r) = x
+-- where
+--  x = (pre x + d) `change` r
+--  --x = (pre x `change` r) + d
 
-integral :: Num a => S a -> S a
+-- | Comment implicit parameter.
+integ :: (Num a, ?h :: a) => DerS a -> S a
+integ (DerS d r) = x
+  where
+    x = (pre x + d * val ?h) `change` r
+
+integral :: (Num a, ?h :: a) => S a -> S a
 integral dx = integ (dx `in1t` 0)
 
 rk4 :: Fractional a => (a -> a -> a) -> S a -> a -> S a
@@ -238,10 +246,10 @@ In Zelus.hs, we write instead:
 -}
 
 -- count upwards by 1 from 0
-example1 = integ (1 `in1t` 0)
+example1 = integ (1 `in1t` 0) where ?h = 0.01
 
 -- count upwards by 1 from 0, resetting to 3 every 10 steps
-example2 = integ (1 `in1t` 0 `reset` (3 `when` every 10))
+example2 = integ (1 `in1t` 0 `reset` (3 `when` every 10)) where ?h = 0.01
 
 every k  = cycle (replicate (k-1) False ++ [True])
 
