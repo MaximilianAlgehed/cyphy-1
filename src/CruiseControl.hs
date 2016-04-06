@@ -48,8 +48,8 @@ vehicle v u_a u_b theta = acc
 
     acc = (f_fric - f_g - f_r - f_a) / m
 
-    up_shift = 3000
-    down_shift = 1000
+    up_shift = 3000 / 9.55
+    down_shift = 1000 / 9.55
 
     gear = automaton
       [ One >-- omega >? up_shift --> Two
@@ -66,8 +66,8 @@ vehicle v u_a u_b theta = acc
 ----- Simulation
 ---
 
---controller :: (?h :: Double) => S Double -> S Double -> (S Double, S Double)
-controller v ref = (u_a, u_b, err, i_err, pid)
+controller :: (?h :: Double) => S Double -> S Double -> (S Double, S Double)
+controller v ref = (u_a, u_b)
   where
     kp = 0.06
     ki = 0.002
@@ -81,3 +81,13 @@ controller v ref = (u_a, u_b, err, i_err, pid)
 
     u_a = pid >? 0 ? (mn pid 1, 0)
     u_b = pid <? 0 ? (mn (-pid) 1, 0)
+
+run :: Double -> S Double -> S Double -> S Double
+run v0 ref slope =
+    let
+      (u_a, u_b) = controller (pre v) ref
+      acc = vehicle (pre v) u_a u_b slope
+      v = integ (acc `in1t` val v0)
+    in v
+  where
+    ?h = 0.01
