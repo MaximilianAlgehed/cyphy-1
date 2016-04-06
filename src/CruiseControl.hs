@@ -1,3 +1,5 @@
+{-# LANGUAGE ImplicitParams #-}
+
 module CruiseControl where
 
 import Zelus
@@ -11,10 +13,9 @@ data Gear = One | Two | Three | Four | Five deriving (Eq, Show)
 vehicle :: S Double -- ^ Velocity
         -> S Double -- ^ Accelerator ratio
         -> S Double -- ^ Decelerator ratio
-        -> S Gear   -- ^ Gear
         -> S Double -- ^ Slope
-        -> S Double -- ^ Resulting acceleration
-vehicle v u_a u_b gear theta = acc
+        -> S Double -- ^ Resulting acceleration, m/s^2
+vehicle v u_a u_b theta = acc
   where
     tm = 400    -- engine torque constant, Nm
     wm = 400    -- peak torque rate, rad/sec
@@ -35,26 +36,48 @@ vehicle v u_a u_b gear theta = acc
     gear_ratio Four = 3.8
     gear_ratio Five = 3.08
 
-    -- omega = v.*gear_ratio(gear)./(wheel_radius*pi)*60/9.55; % rad/s
     omega = (v * map gear_ratio gear) / (wheel_radius * pi) * 60 / 9.55 -- rad/s
 
-    -- T_e = u*Tm.*(1-beta.*(omega./wm-1).^2);
     t_e = u_a * tm * (1 - beta*(omega/wm - 1)^2)
-    -- T_b = u_b*Tm_b;
     t_b = u_b * tm_b
 
-    -- F_fric = (T_e*gear_ratio(gear) - T_b*sign(v))./wheel_radius;
     f_fric = ((t_e * map gear_ratio gear) - (t_b * signum v)) / wheel_radius
-    -- F_g = m.*g.*sin(theta);
     f_g = m * g * sin theta
-    -- F_r = m.*g.*Cr.*sign(v);
     f_r = m * g * cr * signum v
-    -- F_a = 0.5.*rho.*Cd.*A.*v.^2;
     f_a = 0.5 * rho * cd * a * v^2
 
-    -- acc = (F_fric - F_g - F_r - F_a)./m;
     acc = (f_fric - f_g - f_r - f_a) / m
+
+    up_shift = 3000
+    down_shift = 1000
+
+    gear = automaton
+      [ One >-- omega >? up_shift --> Two
+      , Two >-- omega <? down_shift --> One
+      , Two >-- omega >? up_shift --> Three
+      , Three >-- omega <? down_shift --> Two
+      , Three >-- omega >? up_shift --> Four
+      , Four >-- omega <? down_shift --> Three
+      , Four >-- omega >? up_shift --> Five
+      , Five >-- omega <? down_shift --> Four
+      ]
 
 --------------------------------------------------------------------------------
 ----- Simulation
 ---
+
+--controller :: (?h :: Double) => S Double -> S Double -> (S Double, S Double)
+controller v ref = (u_a, u_b, err, i_err, pid)
+  where
+    kp = 0.06
+    ki = 0.002
+    kd = 0.0
+
+    err = ref - v
+    i_err = integ (err `in1t` 0)
+    d_err = deriv err
+
+    pid = kp*err + ki*i_err + kd*d_err
+
+    u_a = pid >? 0 ? (mn pid 1, 0)
+    u_b = pid <? 0 ? (mn (-pid) 1, 0)
