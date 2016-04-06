@@ -36,10 +36,6 @@ val = repeat
 pre :: S a -> S a
 pre xs = xs |-> xs
 
--- | Advance a stream by a single step by dropping its first value. NOTE: unsafe Zelus :)
-next :: S a -> S a
-next = tail
-
 --------------------------------------------------------------------------------
 -- other useful functions on streams
 
