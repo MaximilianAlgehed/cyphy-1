@@ -46,8 +46,8 @@ next = tail
 start :: S Bool
 start = val True |> val False
 
-deriv :: Num a => S a -> S a
-deriv x = x - pre x -- next x - x
+deriv :: (Fractional a, ?h :: a) => S a -> S a
+deriv x = (x - pre x) / val ?h
 
 up, down :: Ord a => S a -> S Bool
 up   x = x >? pre x
@@ -190,7 +190,7 @@ automaton :: Eq a => [(a,S Bool,a)] -> S a
 automaton ts@((s0,_,_):_) = s
  where
   s = val s0 |-> trans ts
-  
+
   trans []             = s
   trans ((s1,t,s2):ts) = s ==? val s1 &&? t ? (val s2, trans ts)
 
@@ -202,7 +202,7 @@ x --> y = (x,y)
 x >-- (y,z) = (x,y,z)
 
 took :: Eq a => S a -> (a,a) -> S Bool
-took s (x,y) = pre s ==? val x &&? s ==? val y 
+took s (x,y) = pre s ==? val x &&? s ==? val y
 
 --------------------------------------------------------------------------------
 -- properties
