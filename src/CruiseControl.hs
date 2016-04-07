@@ -9,10 +9,10 @@ import Zelus
 
 data Gear = One | Two | Three | Four | Five deriving (Eq, Show)
 
-run :: Double   -- ^ Initial speed
-    -> S Double -- ^ Cruise control speed setting
-    -> S Double -- ^ Road slope (disturbance)
-    -> S Double -- ^ Resulting speed
+run :: Double   -- ^ Initial speed, m/s
+    -> S Double -- ^ Cruise control speed setting, m/s
+    -> S Double -- ^ Road slope (disturbance), rad
+    -> S Double -- ^ Resulting speed,m/s
 run v0 ref road_slope =
     let
       (u_a, u_b) = controller (pre v) ref
@@ -79,12 +79,12 @@ vehicle v u_a u_b road_slope = acc
 controller :: (?h :: Double) => S Double -> S Double -> (S Double, S Double)
 controller v ref = (u_a, u_b)
   where
-    kp = 0.06
-    ki = 0.002
+    kp = 0.8
+    ki = 0.04
     kd = 0.0
 
     err = ref - v
-    i_err = integ (err `in1t` 0)
+    i_err = integ $ ((abs (pre pid) >? 1) ? (0, err)) `in1t` 0
     d_err = deriv err
 
     pid = kp*err + ki*i_err + kd*d_err
