@@ -15,10 +15,11 @@ run :: Double   -- ^ Initial speed, m/s
     -> S Double -- ^ Resulting speed,m/s
 run v0 ref road_slope =
     let
-      (u_a, u_b) = controller (pre v) ref
-      acc = vehicle (pre v) u_a u_b road_slope
+      (u_a, u_b) = controller (pre v_stable) ref
+      acc = vehicle (pre v_stable) u_a u_b road_slope
       v = integ (acc `in1t` val v0)
-    in v
+      v_stable = (v <? 0.005) ? (0,v)
+    in v_stable
   where
     ?h = 0.01
 
