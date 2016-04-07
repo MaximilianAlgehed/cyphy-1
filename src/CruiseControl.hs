@@ -1,32 +1,44 @@
 {-# LANGUAGE ImplicitParams #-}
 
+-- | Based on Cruise control system from
+-- http://www.cds.caltech.edu/~murray/amwiki/index.php/Cruise_control
+
 module CruiseControl where
 
 import Zelus
 
---------------------------------------------------------------------------------
------ Vehicle
----
-
 data Gear = One | Two | Three | Four | Five deriving (Eq, Show)
 
-vehicle :: S Double -- ^ Velocity
-        -> S Double -- ^ Accelerator ratio
-        -> S Double -- ^ Decelerator ratio
-        -> S Double -- ^ Slope
-        -> S Double -- ^ Resulting acceleration, m/s^2
-vehicle v u_a u_b theta = acc
+run :: Double   -- ^ Initial speed
+    -> S Double -- ^ Cruise control speed setting
+    -> S Double -- ^ Road slope (disturbance)
+    -> S Double -- ^ Resulting speed
+run v0 ref road_slope =
+    let
+      (u_a, u_b) = controller (pre v) ref
+      acc = vehicle (pre v) u_a u_b road_slope
+      v = integ (acc `in1t` val v0)
+    in v
   where
-    tm = 400    -- engine torque constant, Nm
-    wm = 400    -- peak torque rate, rad/sec
-    beta = 0.4  -- torque coefficient
-    cr = 0.03   -- coefficient of rolling friction
-    rho = 1.29  -- density of air, kg/m^3
-    cd = 0.28   -- drag coefficient
-    a = 2.8     -- car area, m^2
-    g = 9.81    -- gravitational constant
-    m = 1700    -- vehicle mass, kg
-    tm_b = 2800 -- maximum brake torque, Nm
+    ?h = 0.01
+
+vehicle :: S Double -- ^ Velocity, m/s
+        -> S Double -- ^ Accelerator ratio, [0, 1]
+        -> S Double -- ^ Decelerator ratio, [0, 1]
+        -> S Double -- ^ Road slope, rad
+        -> S Double -- ^ Resulting acceleration, m/s^2
+vehicle v u_a u_b road_slope = acc
+  where
+    t_m = 400     -- engine torque constant, Nm
+    omega_m = 400 -- peak torque rate, rad/sec
+    beta = 0.4    -- torque coefficient
+    cr = 0.03     -- coefficient of rolling friction
+    rho = 1.29    -- density of air, kg/m^3
+    cd = 0.28     -- drag coefficient
+    a = 2.8       -- car area, m^2
+    g = 9.81      -- gravitational constant
+    m = 1700      -- vehicle mass, kg
+    t_m_b = 2800  -- maximum brake torque, Nm
 
     wheel_radius = 0.381 -- m
 
@@ -36,20 +48,22 @@ vehicle v u_a u_b theta = acc
     gear_ratio Four = 3.8
     gear_ratio Five = 3.08
 
-    omega = (v * map gear_ratio gear) / (wheel_radius * pi) * 60 / 9.55 -- rad/s
+    -- engine speed, rad/s
+    omega = (v * map gear_ratio gear) / (wheel_radius * pi) * 60 / 9.55
 
-    t_e = u_a * tm * (1 - beta*(omega/wm - 1)^2)
-    t_b = u_b * tm_b
+    t_e = u_a * t_m * (1 - beta*(omega/omega_m - 1)^2) -- engine tourque
+    t_b = u_b * t_m_b                                  -- brake tourque
 
+    -- friction
     f_fric = ((t_e * map gear_ratio gear) - (t_b * signum v)) / wheel_radius
-    f_g = m * g * sin theta
-    f_r = m * g * cr * signum v
-    f_a = 0.5 * rho * cd * a * v^2
+    f_g = m * g * sin road_slope   -- gravitation
+    f_r = m * g * cr * signum v    -- rolling resistance
+    f_a = 0.5 * rho * cd * a * v^2 -- air drag
 
     acc = (f_fric - f_g - f_r - f_a) / m
 
-    up_shift = 3000 / 9.55
-    down_shift = 1000 / 9.55
+    up_shift = 3000 / 9.55   -- rad/s
+    down_shift = 1000 / 9.55 -- rad/s
 
     gear = automaton
       [ One >-- omega >? up_shift --> Two
@@ -61,10 +75,6 @@ vehicle v u_a u_b theta = acc
       , Four >-- omega >? up_shift --> Five
       , Five >-- omega <? down_shift --> Four
       ]
-
---------------------------------------------------------------------------------
------ Simulation
----
 
 controller :: (?h :: Double) => S Double -> S Double -> (S Double, S Double)
 controller v ref = (u_a, u_b)
@@ -79,15 +89,6 @@ controller v ref = (u_a, u_b)
 
     pid = kp*err + ki*i_err + kd*d_err
 
+    -- accelerate when positive and break when negative
     u_a = pid >? 0 ? (mn pid 1, 0)
     u_b = pid <? 0 ? (mn (-pid) 1, 0)
-
-run :: Double -> S Double -> S Double -> S Double
-run v0 ref slope =
-    let
-      (u_a, u_b) = controller (pre v) ref
-      acc = vehicle (pre v) u_a u_b slope
-      v = integ (acc `in1t` val v0)
-    in v
-  where
-    ?h = 0.01
