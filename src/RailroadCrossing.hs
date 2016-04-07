@@ -35,7 +35,8 @@ train :: (?h :: Double) => Double -> Double -> Double -> S Double
 train ddApproach ddNear safetyDistance = d
   where
     initPos = val 1100
-    dd = trainState ==? val Near ? (val ddNear, val ddApproach)
+    a = (trainState ==? val Near &&? pre dd <? val ddNear) ? (2.5, 0)
+    dd = integ (a `in1t` val ddApproach)
     d = integ (dd `in1t` initPos)
     safe = -100
     trainPresent = safe <=? d &&? d <=? val safetyDistance
