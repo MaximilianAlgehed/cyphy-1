@@ -5,6 +5,8 @@
 -- http://dslab.konkuk.ac.kr/Class/2012/12SIonSE/Key%20Papers/HyTech%20-%20STTT.pdf
 -- Page 118. Initial position is changed from 5000 to 1100 in this
 -- implementation.
+-- Fail condition is when gate is not closed and train distance from crossing is
+-- less than or equal to 10.
 
 module RailroadCrossing where
 
@@ -16,9 +18,10 @@ data TrainState = Far | Approaching | Near deriving (Eq, Show)
 run :: Double -- ^ -55 <= ddApproach <= -45
     -> Double -- ^ -50 <= ddNear <= -35
     -> Double -- ^ 0.9 <= closingSpeed <= 1.1
-    -> Double -- ^ safetyDistance <= 288.2
+    -> Double -- ^ 169.3 <= safetyDistance <= 288.2
               -- All valid choices of ddApproach, ddNear and closingSpeed will
-              -- work with a safety distance greater than 288.2.
+              -- work with a safety distance greater than 288.2 and fail with
+              -- distance less than 169.3.
     -> S (Double, GateState)
 run ddApproach ddNear closingSpeed safetyDistance =
     let
@@ -27,12 +30,6 @@ run ddApproach ddNear closingSpeed safetyDistance =
     in zip d gState
   where
     ?h = 0.01
-
--- run ddApproach ddNear closingSpeed safetyDistance = zip d gatePos
---   where
---     d = train ddApproach ddNear safetyDistance
---     gatePos = gate d closingSpeed safetyDistance
-
 
 train :: (?h :: Double) => Double -> Double -> Double -> S Double
 train ddApproach ddNear safetyDistance = d
@@ -55,12 +52,9 @@ gate d closingSpeed safetyDistance = gateState
     safe = -100
     trainPresent = safe <=? d &&? d <=? val safetyDistance
     trainLeaves = d <? safe
-    x = integ (dx `in1t` 0)
+    x = integ (dx `in1t` 0) -- Time counter
     gateState = automaton
       [ Open >-- trainPresent --> Closing
       , Closing >-- (x >=? 5) --> Closed
       , Closed >-- trainLeaves --> Open
       ]
-
-failed :: S (Double, GateState) -> S Bool
-failed = map (\(d, state) -> abs d <= 10 && state /= Closed)
