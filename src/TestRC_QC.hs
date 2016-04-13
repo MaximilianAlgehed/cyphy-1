@@ -1,4 +1,4 @@
-module TestRC where
+module TestRC_QC where
 
 import Test.QuickCheck
 import Zelus
