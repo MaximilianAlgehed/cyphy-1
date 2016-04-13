@@ -2,15 +2,21 @@ module VBool where
 
 import Test.QuickCheck
 
-newtype VBool = VBool Double
+newtype VBool = VBool { val :: Double }
  deriving ( Eq, Ord )
 
 instance Show VBool where
-  show (VBool d) = show d
+  show = show . val
 
 false, true :: VBool
 false = VBool (-1)
 true  = VBool 1
+
+vbFromBool :: Bool -> VBool
+vbFromBool b = if b then true else false
+
+vbFromDouble :: Double -> VBool
+vbFromDouble = VBool
 
 vbool :: Bool -> VBool
 vbool b = if b then true else false
@@ -38,10 +44,9 @@ a ==. b | a == b    = VBool 1
         | otherwise = VBool (-1 - abs (a-b))
 a /=. b = nt (a ==. b)
 
-
+-- Changed definition so zero is counted as true
 isTrue :: VBool -> Bool
-isTrue (VBool d) = d > 0
+isTrue = (>=0) . val
 
 trueness :: VBool -> Double
-trueness (VBool d) = d
-
+trueness = val
