@@ -1,0 +1,5 @@
+need a way to propagate h to arbitrary instances
+reference streams need to know the size of the time step
+alternatively only generate information that does not depend on h
+and let the property implementer take care of creating a proper
+stream from that
