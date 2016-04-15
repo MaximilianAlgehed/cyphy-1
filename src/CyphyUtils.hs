@@ -2,6 +2,10 @@
 
 module CyphyUtils where
 
+import Prelude hiding (lookup)
+import Data.Map (lookup, fromList, empty, insertWith)
+import System.Random (Random)
+
 import Zelus
 import NotQuickCheck
 
@@ -9,57 +13,75 @@ import NotQuickCheck
 ----- Arbitrary helper generators
 ---
 
-data Reference = R [(Double, Double)] (S Double)
+-- Better division:
+-- Ways of creating succession of values
+-- and ways of creating time intervals
+-- then just zip them up.
 
--- y either start or stop time. if start: vilket värde fram till dess?
--- om slut: vilket värde mot oändligheten?
--- lösning: antar att första tidpunkten är 0
--- | Creates a reference stream from a list of time/reference value pairs.
-refStream :: (RealFrac a, ?h :: a) => [(a, b)] -> S b
-refStream xs = interp 0 xs
+-- Other ideas:
+-- intervalGen with different distributions, uniform, binomial...
+-- limits, max, min
+
+-- | Creates a reference stream from a list of interval/reference pairs.
+refStream :: (Ord a, Num a, ?h :: a) => [(a, b)] -> S b
+refStream = foldr1 (++) . map (uncurry f)
   where
-    interp _ [] = []
-    interp _ [(_, r)] = repeat r
-    interp t0 ((t1,r):trs) =
-      let n = ceiling ((t1-t0) / ?h)
-          prefix = replicate n r
-          postfix = interp t1 trs
-      in prefix ++ postfix
+    f t r
+      | t < 0 = []
+      | otherwise = r : f (t - ?h) r
 
+intervalGen :: Random a => (a, a) -> Gen (S a)
+intervalGen bounds = infiniteListOf (choose bounds)
 
--- | Generates an infinite list of time/reference value pairs.
-refGen :: (Double, Double) -- ^ upper and lower limit
-       -> (Double, Double) -- ^ max and min interval
-       -> (Double, Double) -- ^ max and min step
-       -> Gen [(Double, Double)]
-refGen = undefined
-
--- | Generate a stream from elements in list
-elemRefGen :: RealFrac a => (a, a) -> [b] -> [(a, b)]
-elemRefGen = undefined
-
--- elemRefGen example
-
--- | Generate a stream from an atomaton.
-automRefGen :: (RealFrac a, Eq b)
-            =>(a, a)    -- ^ min max interval length
-            -> [(b, b)] -- ^ edges
-            -> [(a, b)]
-automRefGen = undefined
-
--- automRefGen example
-
-data Gears = One | Two | Three
-
-automEx = refStream (automRefGen bounds automata)
+-- | Generate a stream from elements in list.
+-- No element will occur twice in a row. Guaranteed. Unless it occurs
+-- twice in the input.
+weightedElemGen :: Ord a => a -> [(Int, a)] -> Gen (S a)
+weightedElemGen start elems = weightedAutomGen start automata
   where
-    ?h = 0.1
+    automata = [(from, weight, to) | (_, from) <- elems
+                                   , (weight, to) <- elems
+                                   , from /= to]
+
+elemGen :: Ord a => a -> [a] -> Gen (S a)
+elemGen start elems = weightedElemGen start (zip (repeat 1) elems)
+
+data Color = Red | Green | Blue | Yellow | Purple deriving (Show, Eq, Ord)
+
+elemEx :: IO (S Color)
+elemEx = generate (elemGen Red [Red, Green, Blue, Yellow, Purple])
+
+-- | Generate a stream from an automata.
+-- Assumes edges are unique or that biased weights doesn't matter.
+-- If there is a sink in the automata and the path leads to it the stream
+-- will stay in that state for ever.
+weightedAutomGen :: Ord a => a -> [(a, Int, a)] -> Gen (S a)
+weightedAutomGen start edges = walk start
+  where
+    graph = foldr f empty edges
+
+    f (from, weight, to) g = insertWith (++) from [(weight, return to)] g
+
+    walk current = case lookup current graph of
+      Just nexts -> frequency nexts >>= walk >>= return . (current:)
+      Nothing -> return (repeat current)
+
+automGen :: Ord a => a -> [(a, a)] -> Gen (S a)
+automGen start edges = weightedAutomGen start edges'
+  where
+    (froms, tos) = unzip edges
+    edges' = zip3 froms (repeat 1) tos
+
+data Gears = One | Two | Three deriving (Show, Eq, Ord)
+
+automEx :: IO (S Gears)
+automEx = generate (automGen One automata)
+  where
     automata = [(One, Two), (Two, One), (Two, Three), (Three, Two)]
-    bounds = (1, 3)
 
---instance Arbitrary MM where
---  arbitrary = refGen (100, 10) (5, -5) (1000, 300)
+-----------------------------------------------
+----- Small stuff
+---
 
--- reference "strömmen med referensvärden"
-
---
+mapSnd :: (a -> b) -> (c, a) -> (c, b)
+mapSnd f (c, a) = (c, f a)
