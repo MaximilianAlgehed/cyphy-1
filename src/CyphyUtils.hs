@@ -13,21 +13,57 @@ import NotQuickCheck
 ----- Arbitrary helper generators
 ---
 
--- Better division:
--- Ways of creating succession of values
--- and ways of creating time intervals
--- then just zip them up.
-
 -- Other ideas:
 -- intervalGen with different distributions, uniform, binomial...
 -- limits, max, min
+-- more continous stuff, perlin noise etc
+
+stepGen :: (Random a, Ord a, Num a,
+            Random b, Ord b, Num b, ?h :: b)
+        => Int              -- ^ number of steps
+        -> (a, a)           -- ^ range (min, max)
+        -> (b, b)           -- ^ interval length (min, max)
+        -> Gen ([(b, a)], S a)
+stepGen n range dt =
+  do values <- intervalGen range
+     dts <- intervalGen dt
+     let refs = take n (zip dts values)
+     return (refs, refStream refs)
+
+stepLimitedGen :: (Random a, Ord a, Num a,
+                   Random b, Ord b, Num b, ?h :: b)
+               => Int              -- ^ number of steps
+               -> (a, a)           -- ^ range (min, max)
+               -> (b, b)           -- ^ interval length (min, max)
+               -> (a, a)           -- ^ step (max down, max up)
+               -> Gen ([(b, a)], S a)
+stepLimitedGen n range dt dr =
+  do r0 <- choose range
+     values <- steps r0
+     dts <- intervalGen dt
+     let refs = take n (zip dts values)
+     return (refs, refStream refs)
+  where
+    steps r0 =
+      do r1 <- choose dr
+         let limited = limit (r0 + r1) range
+         rs <- steps limited
+         return (limited : rs)
+
+toAbsolute :: Num a => [(a, b)] -> [(a, b)]
+toAbsolute refs = scanl1 f refs
+  where
+    f (t, b1) (dt, b2) = (t + dt, b2)
 
 -- | Creates a reference stream from a list of interval/reference pairs.
-refStream :: (Ord a, Num a, ?h :: a) => [(a, b)] -> S b
-refStream = foldr1 (++) . map (uncurry f)
+refStream :: (Ord a, Num a, ?h :: a)
+          => [(a, b)] -- ^ a is dt, b is ref value
+          -> S b
+refStream refs =
+  foldr1 (++) (map (uncurry f) refs) ++ repeat (snd (last refs))
   where
     f t r
-      | t < 0 = []
+      | t <= 0 = []
       | otherwise = r : f (t - ?h) r
 
 intervalGen :: Random a => (a, a) -> Gen (S a)
@@ -85,3 +121,17 @@ automEx = generate (automGen One automata)
 
 mapSnd :: (a -> b) -> (c, a) -> (c, b)
 mapSnd f (c, a) = (c, f a)
+
+limit :: Ord a => a -> (a, a) -> a
+limit x (lower, upper) = max (min x upper) lower
+
+-----------------------------------------------
+----- More axamples
+---
+
+stream = do
+  es <- generate (elemGen 1 [1..5])
+  ts <- generate (intervalGen (0, 1)) :: IO [Double]
+  let ps = take 5 (zip ts es)
+  return (refStream ps)
+  where ?h = 0.1
