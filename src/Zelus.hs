@@ -116,7 +116,7 @@ instance Floating a => Floating [a] where
 --------------------------------------------------------------------------------
 -- event streams
 
-newtype E a = E{ unE :: S (Maybe a) }
+newtype E a = E{ unE :: S (Maybe a) } deriving Show
 
 instance Applicative E where
   pure x        = E (val (Just x))
@@ -135,9 +135,19 @@ instance Alternative E where
 when :: S a -> S Bool -> E a
 x `when` b = E (b ? (Just <$> x,val Nothing))
 
+whenEvent :: S a -> E b -> E a
+xs `whenEvent` E es = E (zipWith f xs es)
+  where
+    f _ Nothing  = Nothing
+    f x (Just _) = Just x
+
 change :: S a -> E a -> S a
 ~(_:xs) `change` E (Just x :rs) = x : change xs (E rs)
 (x:xs)  `change` E (Nothing:rs) = x : change xs (E rs)
+
+isEvent :: Eq a => E a -> S a -> S Bool
+E (Just e : es) `isEvent` (x : xs) = (x == e) : isEvent (E es) xs
+E (_ : es)      `isEvent` (_ : xs) = False : isEvent (E es) xs
 
 --------------------------------------------------------------------------------
 -- derivative-specified streams
@@ -145,7 +155,7 @@ change :: S a -> E a -> S a
 data DerS a = DerS
   { diffs  :: S a
   , resets :: E a
-  }
+  } deriving Show
 
 in1t :: S a -> S a -> DerS a
 d `in1t` x = DerS d (x `when` start)
