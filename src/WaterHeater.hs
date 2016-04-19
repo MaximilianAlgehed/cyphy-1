@@ -17,12 +17,12 @@ data BurnerState = B1 | B2 | B3 | B4 deriving (Eq, Show)
 
 data ThermoEvent = UP95 | DW93 deriving (Eq, Show)
 
-run :: (S Double, E ThermoEvent, E BurnerEvent)
-run =
+run :: S Double -> (S Double, E ThermoEvent, E BurnerEvent)
+run ref_temp =
     let
       temperature = tank burner_events
       burner_events = burner thermo_events
-      thermo_events = thermo temperature
+      thermo_events = thermo ref_temp temperature
     in (temperature, thermo_events, burner_events)
   where
     ?h = 0.01
@@ -56,7 +56,7 @@ tank burner_event = temperature
       ]
 
 burner :: (?h :: Double) => E ThermoEvent -> E BurnerEvent
-burner therom_event = on <|> off
+burner thermo_event = on <|> off
   where
     delay = 0.1
 
@@ -71,17 +71,17 @@ burner therom_event = on <|> off
     y = integ (map dy state `in1t` 0 `reset` (0 `whenEvent` (on <|> off)))
 
     state = automaton
-      [ B1 >-- therom_event `isEvent` val DW93 --> B2
+      [ B1 >-- thermo_event `isEvent` val DW93 --> B2
       , B2 >-- y >=? val delay --> B3
-      , B3 >-- therom_event `isEvent` val UP95 --> B4
+      , B3 >-- thermo_event `isEvent` val UP95 --> B4
       , B4 >-- y >=? val delay --> B1
       ]
 
-thermo :: (?h :: Double) => S Double -> E ThermoEvent
-thermo temperature = (up <|> down)
+thermo :: (?h :: Double) => S Double -> S Double -> E ThermoEvent
+thermo ref_temp temperature = (up <|> down)
   where
-    max_temp = 95
-    min_temp = 93
+    max_temp = ref_temp + 1
+    min_temp = ref_temp - 1
 
     frequency = 0.1
 
