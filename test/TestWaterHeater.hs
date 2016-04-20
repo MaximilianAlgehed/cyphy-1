@@ -65,21 +65,26 @@ instance Arbitrary Ref where
 
 -- Properties on data Ref
 
+-- make sure shrink actually shrinks
 prop_shrink_smaller ref = and (map f (shrink ref))
   where
     Ref raw stream = ref
     n = length raw
     f (Ref raw' stream') = length raw' < n
 
+-- make sure shrink doesn't shrink to much
 prop_shrink_nonempty ref = and (map f (shrink ref))
   where
     Ref raw stream = ref
     f (Ref raw' stream') = length raw' >= 0
 
+-- is there a raw?
 prop_arb_raw_nonempty = not . null . rw
 
+-- is a stream actually generated from raw?
 prop_arb_stream_nonempty = not . null . strm
 
+-- does min dt hold?
 prop_arb_min_dts ref
     | length groups <= 1 = True   -- stream is constant
     | otherwise = and (map f (init groups))  -- the last reference is infinite
@@ -87,6 +92,7 @@ prop_arb_min_dts ref
     groups = group (take maxsteps (strm ref))
     f grp = let ?h = h in fromIntegral (length grp) / ?h - ?h >= 1 --- <<< h!
 
+-- does max dt hold?
 prop_arb_max_dts ref
     | length groups <= 1 = True   -- stream is constant
     | otherwise = and (map f (init groups))  -- the last reference is infinite
@@ -94,6 +100,7 @@ prop_arb_max_dts ref
     groups = group (take maxsteps (strm ref))
     f grp = let ?h = h in fromIntegral (length grp) / ?h - ?h <= 20 --- <<< h!
 
+-- properties on reference values
 prop_arb_min_drs = let ?h = h; ?tmax = tmax in forever (>= -3) . toRel . strm
 prop_arb_max_drs = let ?h = h; ?tmax = tmax in forever (<= 3) . toRel . strm
 prop_arb_min_absr = let ?h = h; ?tmax = tmax in forever (>= 20) . strm
