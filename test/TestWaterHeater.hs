@@ -7,44 +7,11 @@ import Prelude hiding (until)
 import Data.List
 
 import Test.QuickCheck
-import Test.Tasty
-import Test.Tasty.QuickCheck
 
 import Zelus
 import CyphyUtils
 
 import WaterHeater
-
-main :: IO ()
-main = defaultMain $ testGroup "WaterHeater tests"
-    [ arbTests
-    , propTests
-    ]
-
-arbTests = testGroup "Arbitrary instance tests"
-     [ testProperty "Ref shrink strictly smaller"
-         (prop_shrink_smaller :: Ref -> Bool)
-     , testProperty "Ref shrink nonempty" (prop_shrink_nonempty :: Ref -> Bool)
-     , testProperty "Raw nonempty" (prop_arb_raw_nonempty :: Ref -> Bool)
-     , testProperty "Stream nonempty" (prop_arb_stream_nonempty :: Ref -> Bool)
-     , testProperty "Minimum dts is respected" (prop_arb_min_dts :: Ref -> Bool)
-     , testProperty "Maximum dts is respected" (prop_arb_max_dts :: Ref -> Bool)
-     , testProperty "Minimum drs is respected" (prop_arb_min_drs :: Ref -> Bool)
-     , testProperty "Maximum drs is respected" (prop_arb_max_drs :: Ref -> Bool)
-     , testProperty "Minimum absolute r is respected"
-         (prop_arb_min_absr :: Ref -> Bool)
-     , testProperty "Maximum absolute r is respected"
-         (prop_arb_max_absr :: Ref -> Bool)
-     ]
-
-propTests = testGroup "Property tests"
-     [ testProperty "Temperature never reaches 100 degrees"
-         (prop_R1 :: Ref -> Bool)
-     , testProperty "Stable regime within 15s after reference change"
-         (prop_R2 :: Ref -> Bool)
-     , testProperty "Burner not continously ON for more than 2s while stable"
-         (prop_R2 :: Ref -> Bool)
-     ]
 
 h :: Double
 h = 0.01 -- this is problematic. we need access to h in arbitrary (currently),
