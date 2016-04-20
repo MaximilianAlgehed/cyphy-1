@@ -15,56 +15,38 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     NotQuickCheck
-  other-modules:       VBool
+  exposed-modules:     Zelus
+                     , NotQuickCheck
+                     , CyphyUtils
+                     , WaterHeater
   build-depends:       base >= 4.7 && < 5
                      , QuickCheck >= 2.8.1
                      , random >= 1.1
                      , containers >= 0.5.6.2
+                     , tasty >= 0.11.0.2
+                     , tasty-quickcheck >= 0.8.4
   default-language:    Haskell2010
 
-executable inspect-server
-  main-is:             Inspect.hs
-  hs-source-dirs:      src
-  other-modules:       Inspect.Server
-  build-depends:       base >= 4.7 && < 5
-                     , websockets >= 0.9.6.1
-                     , cgi >= 3001.2.2.3
-                     , network >= 2.6.2.1
-                     , QuickCheck >= 2.8.1
-                     , containers >= 0.5.6.2
-                     , text >= 1.2.2.1
-                     , bytestring
-  default-language:    Haskell2010
-
-executable inspect-client
-  main-is:             Client.hs
-  hs-source-dirs:      src
-  other-modules:       Inspect.Server
-                     , Inspect.Client
-                     , Inspect.Graph
-  build-depends:       base >= 4.7 && < 5
-                     , websockets >= 0.9.6.1
-                     , cgi >= 3001.2.2.3
-                     , network >= 2.6.2.1
-                     , QuickCheck >= 2.8.1
-                     , containers >= 0.5.6.2
-                     , text >= 1.2.2.1
-                     , aeson
-                     , bytestring
-                     , cassava
-  default-language:    Haskell2010
-
+-- executable cyphy-exe
+--   hs-source-dirs:      app
+--   main-is:             Main.hs
+--   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+--   build-depends:       base
+--                      , cyphy
+--   default-language:    Haskell2010
 
 test-suite cyphy-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
-  main-is:             Spec.hs
-  build-depends:       base
+  main-is:             Main.hs
+  build-depends:       base >= 4.7 && < 5
+                     , QuickCheck >= 2.8.1
                      , cyphy
+                     , tasty >= 0.11.0.2
+                     , tasty-quickcheck >= 0.8.4
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
-source-repository head
-  type:     git
-  location: https://github.com/koengit/cyphy
+-- source-repository head
+--   type:     git
+--   location: https://github.com/githubuser/cyphy
