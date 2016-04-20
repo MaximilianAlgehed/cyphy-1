@@ -5,3 +5,28 @@ and let the property implementer take care of creating a proper
 stream from that
 
 monitors to specify test properties
+
+shuffling h around is problematic, especially when giving arbitrary instances.
+
+maybe this if we use notquickcheck
+class Arbitrary a where
+  h :: Double     -- :: forall. Fractional b => b
+  tmax :: Double
+  arbitrary :: ?h :: Double => Gen a  -- we can pass h behind the scenes
+  shrink :: a -> [a]
+  valid :: a -> Bool
+
+getting hold of data to test. many streams are hidden in the models, need to
+return tuples containing all relevant data. cumbersome
+
+relative or absolute references as standard?
+
+why do we need [(a, b)] instead of just [a]?
+for shrinking. simplifying a stream is much harder than simplifying the
+interval/reference pair it was generated from
+
+shrinking is very difficult while still keeping the test case valid
+
+
+if we make quickcheck play with streams we can deal with "forever" behind
+the scenes
