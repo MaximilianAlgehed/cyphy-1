@@ -1,7 +1,5 @@
 # Cabal and Stack files
 # -----------------------
-/cyphy.cabal
-/stack.yaml
 .stack-work/
 dist
 cabal-dev
