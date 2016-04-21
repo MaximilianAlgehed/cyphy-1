@@ -1,3 +1,5 @@
+{-# LANGUAGE ImplicitParams #-}
+
 module Main where
 
 import Test.QuickCheck
@@ -7,7 +9,7 @@ import Test.Tasty.QuickCheck
 import qualified TestWaterHeater as TWH
 
 main :: IO ()
-main = defaultMain $ testGroup "All the tests!"
+main = defaultMain $ testGroup " All the tests!"
   [ twh
   ]
 
@@ -48,6 +50,8 @@ twhArbitraryTests = testGroup "Arbitrary instance tests"
 twhPropertyTests = testGroup "Property tests"
   [ testProperty "Temperature never reaches 100 degrees"
       (TWH.prop_R1 :: TWH.Ref -> Bool)
+  , testProperty "Temperature never reaches 100 degrees (monitor)"
+      (TWH.prop_R1_monitor :: TWH.Ref -> Bool)
   , testProperty "Stable regime within 15s after reference change"
       (TWH.prop_R2 :: TWH.Ref -> Bool)
   , testProperty "Burner not continously ON for more than 2s while stable"

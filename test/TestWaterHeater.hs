@@ -22,16 +22,13 @@ h = 0.01 -- this is problematic. we need access to h in arbitrary (currently),
 tmax :: Double
 tmax = 100
 
-maxsteps :: Int
-maxsteps = let ?h = h in steps tmax                --- <<< h!
-
 data Ref = Ref { rw :: [(Double, Double)], strm :: S Double }
 
 instance Show Ref where
   show (Ref raw _) = show raw
 
 instance Arbitrary Ref where
-  arbitrary = let ?h = h in     --- <<< h!
+  arbitrary = let ?h = h in    --- <<< h!
     do -- min and max number of changes
        n <- choose (1, 10) :: Gen Int
        -- initial temperature
@@ -84,21 +81,21 @@ prop_arb_raw_nonempty = not . null . rw
 -- is a stream actually generated from raw?
 prop_arb_stream_nonempty = not . null . strm
 
--- does min dt hold?
+-- does min dt hold? using ?h makes everything convoluted
 prop_arb_min_dts ref
     | length groups <= 1 = True   -- stream is constant
-    | otherwise = and (map f (init groups))  -- the last reference is infinite
+    | otherwise = and (map f (init groups))
   where
-    groups = group (take maxsteps (strm ref))
-    f grp = let ?h = h in fromIntegral (length grp) / ?h - ?h >= 1 --- <<< h!
+    groups = let ?h = h in group (take (steps tmax) (strm ref))
+    f grp = let ?h = h in fromIntegral (length grp) / ?h - ?h >= 1
 
 -- does max dt hold?
 prop_arb_max_dts ref
     | length groups <= 1 = True   -- stream is constant
-    | otherwise = and (map f (init groups))  -- the last reference is infinite
+    | otherwise = and (map f (init groups))
   where
-    groups = group (take maxsteps (strm ref))
-    f grp = let ?h = h in fromIntegral (length grp) / ?h - ?h <= 20 --- <<< h!
+    groups = let ?h = h in group (take (steps tmax) (strm ref))
+    f grp = let ?h = h in fromIntegral (length grp) / ?h - ?h <= 30
 
 -- properties on reference values
 prop_arb_min_drs = let ?h = h; ?tmax = tmax in forever (>= -3) . toRel . strm
@@ -122,6 +119,16 @@ prop_arb_max_absr = let ?h = h; ?tmax = tmax in forever (<= 100) . strm
 --    Dropped filtering.
 prop_R1 :: Ref -> Bool
 prop_R1 = let ?h = h; ?tmax = tmax in forever (<100) . fst3 . run . strm
+
+data Auto = Good | Bad deriving (Eq)
+
+prop_R1_monitor :: Ref -> Bool
+prop_R1_monitor ref = let ?h = h; ?tmax = tmax in forever good state
+  where
+    max_temperature = 100
+    good = (/= Bad)
+    temperature = fst3 (run (strm ref))
+    state = automaton [ Good >-- temperature >=? max_temperature --> Bad ]
 
 -- | (R2) after 15 seconds of operation, the system must be in stable regime,
 -- which means that the temperature of the water in the tank must always
