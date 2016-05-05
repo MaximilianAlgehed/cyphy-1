@@ -30,3 +30,35 @@ shrinking is very difficult while still keeping the test case valid
 
 if we make quickcheck play with streams we can deal with "forever" behind
 the scenes
+
+Shrinking concept diffuse on streams.
+    Shrinking seem to be the thing which sets us appart
+    Shrinking can end up reducing badness of error until it just triggers which makes more difficult to analyze.
+        Only shrink when badness doesn't go down.
+    Specifying shrinking.
+        reduceAmplitude, reduceNrSteps, reduceTotalRange, prefixesOf, ...
+        What if simpler is larger amplitude?
+            Enforce bounds?
+            Stop after n shrinks?
+        How do we specify shrinking while maintaining stream specification?
+            butNotBelow 2 . reduceAmplitude
+    What is simpler?
+    How do we reduce noise to get insight from counter examples if not by shrinking?
+        Data visualization?
+            Aggregate many failing test cases and display them togheter.
+            Categorize fail traces and analyze inputs for each category.
+    The user as shrinking strategy?
+
+Specifying properties.
+    Past LTL.
+    Monitors.
+    STL.
+    
+
+Next meeting.
+    Only 4 weeks remaining.
+    Paper?
+    Maybe shrinking is not the beat way of reducing noice in counter examples?
+    
+
+
