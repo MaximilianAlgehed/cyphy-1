@@ -43,22 +43,35 @@ instance Arbitrary Ref where
        let absrs = toAbs init drs'
        -- convert interval lengths to absolute time references
        let absts = toAbs init dts
-       let intervals = take n (zip absts absrs)
-       return (Ref intervals (refStream intervals))
+       let intervals = take n (zip dts drs')
+       return (Ref intervals (dRefStream intervals))
+       -- let intervals = take n (zip absts absrs)
+       -- return (Ref intervals (refStream intervals))
 
   -- this shrinker does not touch time and reference values since it is
   -- difficult (or maybe i'm lazy) to guarantee the shrunk values
   -- are still valid.
   shrink (Ref raw _)
     | length raw <= 1 = []
-    | otherwise =
-        let n = length raw `div` 3
-            segs = segments n raw
-            shuf = combinations segs
-            raw' = map (foldr1 (++)) shuf
-            stream' = map refStream raw'
-        in zipWith Ref raw' stream'
-      where ?h = h                   --- <<< h!
+    | otherwise = shrinkN raw ++ shrinkAbsDR raw
+
+shrinkN :: [(Double, Double)] -> [Ref]
+shrinkN raw =
+    let n = length raw `div` 3
+        segs = segments n raw
+        shuf = combinations segs
+        raw' = map (foldr1 (++)) shuf
+        stream' = map refStream raw'
+    in zipWith Ref raw' stream'
+  where ?h = h                   --- <<< h!
+
+shrinkAbsDR :: (Double, Double) -> [(Double, Double)] -> [Ref]
+shrinkAbsDR range raw = undefined
+  where
+    absdrs = map abs drs
+    maxdr = maximum absdrs
+    index = (\(Just x) -> x) (find maxdr absdrs)
+    (_, drs) = unzip raw
 
 -- Properties on data Ref
 
@@ -137,8 +150,23 @@ prop_R1_monitor ref = let ?h = h; ?tmax = tmax in forever good state
 -- This property has been adapted to handle changing reference temperature.
 -- 15 seconds after a reference temperature change the temperature must
 -- be within -3 and +3 degrees of reference (unless a new reference before that.
-prop_R2 ref = let ?h = h in True
+prop_R2 ref = undefined
+  --   let state = timerAutomaton
+  --         [ (Stabilizing, const 0, (<=15), refChanged, Stabilizing)
+  --         , (Stabilizing, const 15, (>= 15), const True, Stable)
+  --         , (Stable, id, const True, tempLow, Bad)
+  --         , (Stable, id, const True, tempHigh, Bad)
+  --         ]
+  --   in True
+  -- where
+  --   ?h = h
+
+data R2 = Stabilizing | Stable | Unstable
 
 -- | (R3) during this stable regime, the burner is never continuously ON for
 -- more than two seconds.
 prop_R3 ref = let ?h = h in True
+
+shrinkOne []     = []
+shrinkOne (x:xs) = [ x':xs | x'  <- shrink x ]
+  ++ [ x:xs' | xs' <- shrinkOne xs ]

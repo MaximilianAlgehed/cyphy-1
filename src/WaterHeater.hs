@@ -8,6 +8,7 @@ module WaterHeater where
 import Control.Applicative ((<|>))
 
 import Zelus
+import CyphyUtils
 
 data TankState = T1 | T2 | T3 | T4 deriving (Eq, Show)
 
@@ -20,19 +21,19 @@ data ThermoEvent = UP95 | DW93 deriving (Eq, Show)
 run :: S Double -> (S Double, E ThermoEvent, E BurnerEvent)
 run ref_temp =
     let
-      temperature = tank burner_events
+      (temperature, _) = unzip (tank burner_events)
       burner_events = burner thermo_events
       thermo_events = thermo ref_temp temperature
     in (temperature, thermo_events, burner_events)
   where
     ?h = 0.01
 
-tank :: (?h :: Double) => E BurnerEvent -> S Double
-tank burner_event = temperature
+-- tank :: (?h :: Double) => E BurnerEvent -> S Double
+tank burner_event = zip temperature state
   where
     max_temp = 100
     min_temp = 20
-    init_temp = min_temp
+    init_temp = 99 --min_temp
     k = 0.075
     heat = 150
 

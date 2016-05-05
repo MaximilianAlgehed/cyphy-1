@@ -148,6 +148,14 @@ refStream ((t0, r0):(t1, r1):refs)
   | t0 >= t1 = r1 : refStream ((t1 + ?h, r1):refs)
   | otherwise = r0 : refStream ((t0 + ?h, r0):(t1, r1):refs)
 
+dRefStream :: (Ord time, Num time, ?h :: time, Num value)
+          => [(time, value)]
+          -> S value
+dRefStream [(_, r)] = repeat r
+dRefStream ((t0, r0):(t1, r1):refs)
+  | t0 <= 0 = let absr = r0 + r1 in absr : dRefStream ((t1 - ?h, absr):refs)
+  | otherwise = r0 : dRefStream ((t0 - ?h, r0):(t1, r1):refs)
+
 chooses :: Random a => (a, a) -> Gen (S a)
 chooses bounds = infiniteListOf (choose bounds)
 
@@ -213,7 +221,7 @@ limit (lower, upper) x = max (min x upper) lower
 --     shuffle [1,2,3]
 -- results in
 --     [[1],[2],[1,2],[3],[1,3],[2,3]]
-combinations :: [a] -> [[a]]
+combinations :: [[a]] -> [[[a]]]
 combinations xs
   | length xs <= 2 = []
   | otherwise = init (tail (subsequences xs))
@@ -247,6 +255,9 @@ trd4 (_, _, c, _) = c
 
 fth4 :: (a, b, c, d) -> d
 fth4 (_, _, _, d) = d
+
+printLines :: Show a => [a] -> IO ()
+printLines = mapM_ print
 
 -----------------------------------------------
 ----- More axamples
