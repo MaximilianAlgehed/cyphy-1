@@ -45,9 +45,10 @@ start = val True |> val False
 deriv :: (Fractional a, ?h :: a) => S a -> S a
 deriv x = (x - pre x) / val ?h
 
-up, down :: Ord a => S a -> S Bool
+up, down, changed :: Ord a => S a -> S Bool
 up   x = x >? pre x
 down x = x <? pre x
+changed x = up x ||? down x
 
 (?) :: S Bool -> (S a, S a) -> S a
 c ? (x,y) = [ if c_ then x_ else y_ | (c_,(x_,y_)) <- c `zip` (x `zip` y) ]
@@ -58,6 +59,7 @@ nt = fmap not
 (&&?), (||?) :: S Bool -> S Bool -> S Bool
 (&&?) = zipWith (&&)
 (||?) = zipWith (||)
+(->?) = zipWith ((||) . not)
 
 (>=?), (>?), (<?), (<=?) :: Ord a => S a -> S a -> S Bool
 (>=?) = zipWith (>=)
