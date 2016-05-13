@@ -104,13 +104,10 @@ gfail =
     ([f,f,f,f,f,f,t,f,f,f,f,f,t,t] ++ false)
 
 -- | Made up but relevant.
--- "a t_limit after a reference change the error must not
--- exceede err_max"
+-- "either system is within settling time t_limit efter a reference change
+-- or error is less than max error"
 h ref act err_max t_limit =
-    -- hold ref_changed t_limit
-    -- (err >: repeat err_max)
-    (noot (holdw ref_changed t_limit) ->: (err >: repeat err_max))
-    -- always (hold ref_changed t_limit `intervalw` (err >: repeat err_max))
+    always ((holdw ref_changed t_limit) ||: noot (err >: repeat err_max))
   where
     ref_changed = binMap (/=) ref
     err = map abs (zipWith (-) ref act)
