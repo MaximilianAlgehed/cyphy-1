@@ -62,13 +62,25 @@ reduce = foldl1 (&&)
 
 -- Cyphy specific
 
-steady :: [Double] -> [Double] -> [Bool] -> Int -> Double -> [Bool]
+steady :: [Double] -- ^ Reference
+       -> [Double] -- ^ Actual value
+       -> [Bool]   -- ^ Resets, usually reference change
+       -> Int      -- ^ Number of samples to hold delay
+       -> Double   -- ^ Allowed deviation from reference
+       -> [Bool]
 steady ref act resets samples margin =
     always (holdw resets samples ||? bounded)
   where
     bounded = abs (1 - ref/act) <? val margin
 
-overshoot = undefined
+overshoot :: [Double] -- ^ Reference
+          -> [Double] -- ^ Actual value
+          -> Double   -- ^ Allowed overshoot
+          -> [Bool]
+overshoot ref act margin =
+    always ((begin (up ref) `intervalw` end (down ref)) ->? bounded)
+  where
+    bounded = act/ref - 1 <? val margin
 
 undershoot = undefined
 
