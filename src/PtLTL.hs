@@ -78,11 +78,18 @@ overshoot :: [Double] -- ^ Reference
           -> Double   -- ^ Allowed overshoot
           -> [Bool]
 overshoot ref act margin =
-    always ((begin (up ref) `intervalw` end (down ref)) ->? bounded)
+    ((begin (up ref) `intervalw` end (down ref)) ->? bounded)
   where
     bounded = act/ref - 1 <? val margin
 
-undershoot = undefined
+undershoot :: [Double] -- ^ Reference
+           -> [Double] -- ^ Actual value
+           -> Double   -- ^ Allowed undershoot
+           -> [Bool]
+undershoot ref act margin =
+    ((begin (down ref) `intervalw` end (up ref)) ->? bounded)
+  where
+    bounded = ref/act - 1 <? val margin
 
 rise = undefined
 
