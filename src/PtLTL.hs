@@ -118,7 +118,7 @@ rise ref act samples = always limit
     upper = up (act >=? ref * 0.95)
     limit = (holdw (begin lower) samples ||? once upper) `sincew` begin lower
 
--- | The value must fall from 5% of reference to 95% of reference within
+-- | The value must fall from 95% of reference to 5% of reference within
 -- the given time.
 fall :: [Double] -- ^ Reference
      -> [Double] -- ^ Actual value
