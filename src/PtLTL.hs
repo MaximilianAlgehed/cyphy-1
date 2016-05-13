@@ -6,8 +6,6 @@ module PtLTL where
 
 import Zelus
 
-type Dool = Double
-
 -- Propositional operators
 
 true, false :: [Bool]
@@ -78,7 +76,7 @@ overshoot :: [Double] -- ^ Reference
           -> Double   -- ^ Allowed overshoot
           -> [Bool]
 overshoot ref act margin =
-    ((begin (up ref) `intervalw` end (down ref)) ->? bounded)
+    always ((begin (up ref) `intervalw` end (down ref)) ->? bounded)
   where
     bounded = act/ref - 1 <? val margin
 
@@ -87,11 +85,19 @@ undershoot :: [Double] -- ^ Reference
            -> Double   -- ^ Allowed undershoot
            -> [Bool]
 undershoot ref act margin =
-    ((begin (down ref) `intervalw` end (up ref)) ->? bounded)
+    always ((begin (down ref) `intervalw` end (up ref)) ->? bounded)
   where
     bounded = ref/act - 1 <? val margin
 
-rise = undefined
+rise :: [Double] -- ^ Reference
+     -> [Double] -- ^ Actual value
+     -> Int      -- ^ Allowed time in samples
+     -> [Bool]
+rise ref act samples = always limit
+  where
+    lower = up (act >=? ref * 0.05)
+    upper = up (act >=? ref * 0.95)
+    limit = (holdw (begin lower) samples ||? once upper) `sincew` begin lower
 
 fall = undefined
 
