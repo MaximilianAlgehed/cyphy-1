@@ -1,65 +1,80 @@
-{-
-http://www.kestreltechnology.com/downloads/sttt-tacas02-7.pdf
--}
-
+-- | Past time Linear Temporal Logic with notions of truthness and delays.
+-- Based on http://www.kestreltechnology.com/downloads/sttt-tacas02-7.pdf
 module PtLTL where
 
 import Zelus
 
--- Propositional operators
 
-true, false :: [Bool]
-true = repeat True
-false = repeat False
+--------------------------------------------------------------------------------
+------- Temporal operators
+---
 
--- Temporal operators
-
-prev, once, always :: [Bool] -> [Bool]
+-- | f held in the previous moment.
+prev :: [Bool] -> [Bool]
 prev f = False:f
-once = scanl1 (||)
+
+-- | f held at some past moment.
+once :: [Bool] -> [Bool]
+once f = scanl1 (||) f
+
+-- | f has held in all past moments.
+always :: [Bool] -> [Bool]
 always = scanl1 (&&)
 
-sinces, sincew :: [Bool] -> [Bool] -> [Bool]
+-- | Strong since.
+-- "f2 held at some moment in the past and, since then, f1 held all the time"
+sinces :: [Bool] -> [Bool] -> [Bool]
 f1 `sinces` f2 = f2 ||? (f1 &&? (head f1 : f1 `sinces` f2))
+
+-- | Weak since.
+-- "either f1 was true all the time or f1 `sinces` f2"
+sincew :: [Bool] -> [Bool] -> [Bool]
 f1 `sincew` f2 = always f1 ||? (f1 `sinces` f2)
 
-holds, holdw :: [Bool] -> Int -> [Bool]
+-- | If f holds in some moment then True is repeated for another
+-- (samples - 1) moments.
+holds :: [Bool] -> Int -> [Bool]
 holds f samples = go f 0
   where
     go (True:bs) n = True : go bs (samples - 1)
     go (False:bs) 0 = False : go bs 0
     go (False:bs) n = True : go bs (n - 1)
+
+-- | Either f was always false or holds f samples.
+holdw :: [Bool] -> Int -> [Bool]
 holdw f samples = always (nt f) ||? holds f samples
 
--- Monitoring operators
 
-begin, end :: [Bool] -> [Bool]
-begin = binMap (>)
+--------------------------------------------------------------------------------
+------- Monitoring operators
+---
+
+-- | In the previus moment f held, but not in this one.
+begin :: [Bool] -> [Bool]
+begin f = binMap (>) f
+
+-- | In the previous moment f didn't hold, but it does in this one.
+end :: [Bool] -> [Bool]
 end = binMap (<)
 
-intervals, intervalw ::  [Bool] -> [Bool] -> [Bool]
+-- | Strong interval.
+-- "f1 held at some moment in the past and f2 has not held
+-- since then (inclusive)"
+intervals ::  [Bool] -> [Bool] -> [Bool]
 f1 `intervals` f2 = nt f2 &&? (f1 ||? (head f1 : f1 `intervals` f2))
+
+-- | Weak interval.
+-- "f2 has never been true or f1 `intervals` f2"
+intervalw ::  [Bool] -> [Bool] -> [Bool]
 f1 `intervalw` f2 = always (nt f2) ||? (f1 `intervals` f2)
 
--- Utilities
 
--- | Apply a binary function to pairs of neighboring elements in a list.
---
--- > binMap f [x_1, x_2, x_3, .., x_n]
--- > =
--- > [f x_1 x_1, f x_1 x_2, f x_2 x_3, .., f x_(n-1) f x_n]
-binMap :: (a -> a -> b) -> [a] -> [b]
-binMap f [] = []
-binMap f xs = zipWith f (head xs : xs) xs
+--------------------------------------------------------------------------------
+------- Cyphy specific
+---
 
-t = True
-f = False
-
-reduce :: [Bool] -> Bool
-reduce = and
-
--- Cyphy specific
-
+-- | After a reset the value must be in the margin of the reference within the
+-- given time.
 steady :: [Double] -- ^ Reference
        -> [Double] -- ^ Actual value
        -> [Bool]   -- ^ Resets, usually reference change
@@ -71,6 +86,7 @@ steady ref act resets samples margin =
   where
     bounded = abs (1 - ref/act) <? val margin
 
+-- | The value must not overshoot the reference by more than the given margin.
 overshoot :: [Double] -- ^ Reference
           -> [Double] -- ^ Actual value
           -> Double   -- ^ Allowed overshoot
@@ -80,6 +96,7 @@ overshoot ref act margin =
   where
     bounded = act/ref - 1 <? val margin
 
+-- | The value must not undershoot the reference by more than the given margin.
 undershoot :: [Double] -- ^ Reference
            -> [Double] -- ^ Actual value
            -> Double   -- ^ Allowed undershoot
@@ -89,6 +106,8 @@ undershoot ref act margin =
   where
     bounded = ref/act - 1 <? val margin
 
+-- | The value must rise from 5% of reference to 95% of reference within
+-- the given time.
 rise :: [Double] -- ^ Reference
      -> [Double] -- ^ Actual value
      -> Int      -- ^ Allowed time in samples
@@ -99,6 +118,8 @@ rise ref act samples = always limit
     upper = up (act >=? ref * 0.95)
     limit = (holdw (begin lower) samples ||? once upper) `sincew` begin lower
 
+-- | The value must fall from 5% of reference to 95% of reference within
+-- the given time.
 fall :: [Double] -- ^ Reference
      -> [Double] -- ^ Actual value
      -> Int      -- ^ Allowed time in samples
@@ -109,56 +130,21 @@ fall ref act samples = always limit
     upper = down (act >=? ref * 0.95)
     limit = (holdw (begin upper) samples ||? once lower) `sincew` begin upper
 
--- Examples
 
-ex1 = cycle [t, f, f, t, f, f, t]
-ex2 = replicate 3 f ++ [t] ++ repeat f
-ex3 = replicate 3 f ++ repeat t
-ex4 = replicate 3 f ++ replicate 6 t ++ repeat f
-ex5 = replicate 5 f ++ repeat t
+--------------------------------------------------------------------------------
+------- Utilities
+---
 
--- | From the article, page 10.
--- “whenever p becomes true, then q has been true in the past,
--- and since then we have not yet seen the end of r or s”
-g p q r s = always (begin p ->? (q `intervals` end (r ||? s)))
+-- | Apply a binary function to pairs of neighboring elements in a list.
+--
+-- > binMap f [x_1, x_2, x_3, .., x_n]
+-- > =
+-- > [f x_1 x_1, f x_1 x_2, f x_2 x_3, .., f x_(n-1) f x_n]
+binMap :: (a -> a -> b) -> [a] -> [b]
+binMap f [] = []
+binMap f xs = zipWith f (head xs : xs) xs
 
-gsucc =
-  g ([f,f,f,t,t,f,f,f,f,f,t,f,f,f] ++ false)
-    ([f,t,f,f,t,f,f,f,t,f,f,f,f,f] ++ false)
-    ([t,f,f,f,f,f,f,f,f,f,f,f,f,f] ++ false)
-    ([f,f,f,f,f,f,t,f,f,f,f,f,t,t] ++ false)
 
-gfail =
-  g ([f,f,f,t,t,t,t,f,t,t,t,f,f,f] ++ false)
-    ([f,t,f,f,t,f,f,f,t,f,f,f,f,f] ++ false)
-    ([t,f,f,f,f,f,f,f,f,f,f,f,f,f] ++ false)
-    ([f,f,f,f,f,f,t,f,f,f,f,f,t,t] ++ false)
-
--- | Steady state.
--- "either system is within settling time t_limit after a reference change
--- or error is less than max error"
-h ref act err_max t_limit =
-    always (steady ref act ref_changed t_limit err_max)
-  where
-    ref_changed = binMap (/=) ref
-
-hsucc =
-    h ref act err_max t_limit
-  where
-    ref = ([1,1,1,1,1,1,1,5,5,5,4,4,4,4,4,4,4,4,9,9,9,9,9,9,9] ++ repeat 8)
-    act = map (*1.01) ref
-    t_limit = 4
-    err_max = 0.05
-
-hfail =
-    h ref act err_max t_limit
-  where
-    ref = ([1,1,1,1,1,1,1,5,5,5,4,4,4,4,4,4,4,4,9,9,9,9,9,9,9] ++ repeat 8)
-    act = map (*1.06) ref
-    t_limit = 4
-    err_max = 0.05
-
-resettings = every 6 `intervals` (replicate 3 False ++ every 6)
-resettingw = every 6 `intervalw` (replicate 3 False ++ every 6)
-
--- Draxx them sklounst
+---
+------- Draxx them sklounst
+--------------------------------------------------------------------------------
