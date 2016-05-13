@@ -56,7 +56,7 @@ t = True
 f = False
 
 reduce :: [Bool] -> Bool
-reduce = foldl1 (&&)
+reduce = and
 
 -- Cyphy specific
 
@@ -99,7 +99,15 @@ rise ref act samples = always limit
     upper = up (act >=? ref * 0.95)
     limit = (holdw (begin lower) samples ||? once upper) `sincew` begin lower
 
-fall = undefined
+fall :: [Double] -- ^ Reference
+     -> [Double] -- ^ Actual value
+     -> Int      -- ^ Allowed time in samples
+     -> [Bool]
+fall ref act samples = always limit
+  where
+    lower = down (act >=? ref * 0.05)
+    upper = down (act >=? ref * 0.95)
+    limit = (holdw (begin upper) samples ||? once lower) `sincew` begin upper
 
 -- Examples
 
