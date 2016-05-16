@@ -9,6 +9,7 @@ library
   exposed-modules:     Zelus
                      , NotQuickCheck
                      , CyphyUtils
+                     , VBool
                      , PtLTL
                      , WaterHeater
                      , TestWaterHeater
@@ -31,5 +32,7 @@ test-suite cyphy-test
                      , cyphy
                      , tasty >= 0.11.0.2
                      , tasty-quickcheck >= 0.8.4
+  other-modules:       TestWaterHeater
+                     , TestCruiseControl
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
