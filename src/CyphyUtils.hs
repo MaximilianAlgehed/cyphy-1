@@ -32,7 +32,7 @@ until t p = and . take (steps t) . map p     --- <<< h!
 -- what is forever? needs more information than just h (i.e. max
 -- observed time)
 forever :: (?h :: Double, ?tmax :: Double) => (a -> Bool) -> S a -> Bool
-forever = until ?tmax                  --- <<< h!
+forever = until ?tmax                 --- <<< h!
 
 after :: (?h :: Double, ?tmax :: Double) => Double -> (a -> Bool) -> S a -> Bool
 after t p = forever p . drop (steps t)    --- <<< h!
@@ -115,7 +115,7 @@ steps :: (Ord a, Num a, ?h :: a) => a -> Int
 steps = steps' 0
   where
     steps' acc t
-      | t <= 0 = 0
+      | t <= 0 = acc
       | otherwise = steps' (acc + 1) (t - ?h)          --- <<< h!
 
 toAbsolute :: Num a => [(a, b)] -> [(a, b)]
@@ -155,6 +155,19 @@ dRefStream [(_, r)] = repeat r
 dRefStream ((t0, r0):(t1, r1):refs)
   | t0 <= 0 = let absr = r0 + r1 in absr : dRefStream ((t1 - ?h, absr):refs)
   | otherwise = r0 : dRefStream ((t0 - ?h, r0):(t1, r1):refs)
+
+
+refs :: (Ord time, Num time, ?h :: time, Ord value, Num value)
+     => value
+     -> (value, value)
+     -> [(time, value)]
+     -> S value
+refs initial absrange ds =
+  let (dts, drs) = unzip ds
+      drs' = limitAbs initial absrange drs
+      absrs = toAbs initial drs'
+      absts = toAbs 0 dts
+  in refStream (zip absts absrs)
 
 chooses :: Random a => (a, a) -> Gen (S a)
 chooses bounds = infiniteListOf (choose bounds)
