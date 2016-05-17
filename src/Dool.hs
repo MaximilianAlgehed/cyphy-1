@@ -18,7 +18,7 @@ instance Applicative VBool where
   (<*>) = fmap . value
 
 true, false :: Dool
-true  = pure 0.9999999999999  -- how deal with rounding errors?
+true  = pure 1 -- how deal with rounding errors? this fails many tests
 false = nt true
 
 trues, falses :: [Dool]
