@@ -9,13 +9,16 @@ import Zelus
 
 data Gear = One | Two | Three | Four | Five deriving (Eq, Show)
 
+data Mode = Eco | Normal deriving (Eq, Show)
+
 run :: Double   -- ^ Initial speed, m/s
+    -> S Mode   -- ^ Controller mode
     -> S Double -- ^ Cruise control speed setting, m/s
     -> S Double -- ^ Road slope (disturbance), rad
-    -> S Double -- ^ Resulting speed,m/s
-run v0 ref road_slope =
+    -> S Double -- ^ Resulting speed, m/s
+run v0 mode ref road_slope =
     let
-      (u_a, u_b) = controller (pre v_stable) ref
+      (u_a, u_b) = controller mode (pre v_stable) ref
       acc = vehicle (pre v_stable) u_a u_b road_slope
       v = integ (acc `in1t` val v0)
       v_stable = (v <? 0.005) ? (0,v)
@@ -77,10 +80,14 @@ vehicle v u_a u_b road_slope = acc
       , Five >-- omega <? down_shift --> Four
       ]
 
-controller :: (?h :: Double) => S Double -> S Double -> (S Double, S Double)
-controller v ref = (u_a, u_b)
+controller :: (?h :: Double)
+           => S Mode
+           -> S Double
+           -> S Double
+           -> (S Double, S Double)
+controller mode v ref = (u_a, u_b)
   where
-    kp = 0.8
+    kp = mode ==? val Eco ? (0.6, 0.8)
     ki = 0.04
     kd = 0.0
 

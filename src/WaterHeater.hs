@@ -18,22 +18,23 @@ data BurnerState = B1 | B2 | B3 | B4 deriving (Eq, Show)
 
 data ThermoEvent = UP95 | DW93 deriving (Eq, Show)
 
-run :: S Double -> (S Double, E ThermoEvent, E BurnerEvent)
-run ref_temp =
+--run :: S Double -> (S Double, E ThermoEvent, E BurnerEvent)
+run :: Double -> Double -> S Double -> (S Double, E BurnerEvent)
+run dy dz ref_temp =
     let
-      (temperature, _) = unzip (tank burner_events)
-      burner_events = burner thermo_events
-      thermo_events = thermo ref_temp temperature
-    in (temperature, thermo_events, burner_events)
+      temperature = tank burner_events
+      burner_events = burner dy thermo_events
+      thermo_events = thermo dz ref_temp temperature
+    in (temperature, burner_events)
   where
     ?h = 0.01
 
--- tank :: (?h :: Double) => E BurnerEvent -> S Double
-tank burner_event = zip temperature state
+tank :: (?h :: Double) => E BurnerEvent -> S Double
+tank burner_event = temperature
   where
     max_temp = 100
     min_temp = 20
-    init_temp = 99 --min_temp
+    init_temp = min_temp
     k = 0.075
     heat = 150
 
@@ -56,20 +57,20 @@ tank burner_event = zip temperature state
       , T4 >-- burner_event `isEvent` val ON --> T1
       ]
 
-burner :: (?h :: Double) => E ThermoEvent -> E BurnerEvent
-burner thermo_event = on <|> off
+burner :: (?h :: Double) => Double -> E ThermoEvent -> E BurnerEvent
+burner dy thermo_event = on <|> off
   where
     delay = 0.1
 
-    dy B1 = 0
-    dy B2 = 1
-    dy B3 = 0
-    dy B4 = 1
+    dy' B1 = 0
+    dy' B2 = dy
+    dy' B3 = 0
+    dy' B4 = dy
 
     on = val ON `when` (state `took` (B1 --> B2))
     off = val OFF `when` (state `took` (B3 --> B4))
 
-    y = integ (map dy state `in1t` 0 `reset` (0 `whenEvent` (on <|> off)))
+    y = integ (map dy' state `in1t` 0 `reset` (0 `whenEvent` (on <|> off)))
 
     state = automaton
       [ B1 >-- thermo_event `isEvent` val DW93 --> B2
@@ -78,8 +79,8 @@ burner thermo_event = on <|> off
       , B4 >-- y >=? val delay --> B1
       ]
 
-thermo :: (?h :: Double) => S Double -> S Double -> E ThermoEvent
-thermo ref_temp temperature = (up <|> down)
+thermo :: (?h :: Double) => Double -> S Double -> S Double -> E ThermoEvent
+thermo dz ref_temp temperature = (up <|> down)
   where
     max_temp = ref_temp + 1
     min_temp = ref_temp - 1
@@ -91,15 +92,13 @@ thermo ref_temp temperature = (up <|> down)
     up = val UP95 `when` (temperature >=? max_temp &&? samples)
     down = val DW93 `when` (temperature <=? min_temp &&? samples)
 
-    dz = 1
-
-    z = integ (dz `in1t` 0 `reset` (0 `when` samples))
+    z = integ (val dz `in1t` 0 `reset` (0 `when` samples))
 
 -----------------------------------------------
 ----- Examples
 ---
 
-tex = let ?h = 0.01 in thermo tempdown
+-- tex = let ?h = 0.01 in thermo tempdown
 
 tempdown = [100 - t*0.1 | t <- [0..200]]
 tempup = [80 + t*0.1 | t <- [0..200]]
