@@ -6,46 +6,55 @@ infixr 3 &&. , &&:
 infix 4 <=. , <. , >. , >=. , ==. , /=.
 infix 4 <=: , <: , >: , >=: , ==: , /=:
 
-type Dool = Double
+newtype VBool a = VBool { value :: a } deriving (Show, Eq, Ord)
+
+type Dool = VBool Double
+
+instance Functor VBool where
+  fmap f = pure . f . value
+
+instance Applicative VBool where
+  pure = VBool
+  (<*>) = fmap . value
 
 true, false :: Dool
-true  = 1
-false = -1
+true  = pure 1
+false = nt true
 
 trues, falses :: [Dool]
 trues = repeat true
 falses = repeat false
 
 isTrue, isFalse :: Dool -> Bool
-isTrue = (>0)
-isFalse = (<0)
+isTrue = (>= true)
+isFalse = (<= false)
 
 nt :: Dool -> Dool
-nt = negate
+nt = fmap negate
 
 nts :: [Dool] -> [Dool]
 nts = fmap nt
 
 (&&.), (||.), (=>.) :: Dool -> Dool -> Dool
-(&&.) = min
-(||.) = max
-(=>.) = max . negate
+(&&.) = (<*>) . fmap min
+(||.) = (<*>) . fmap max
+(=>.) = (<*>) . fmap (max . negate)
 
 (&&:), (||:), (=>:) :: [Dool] -> [Dool] -> [Dool]
 (&&:) = zipWith (&&.)
 (||:) = zipWith (||.)
 (=>:) = zipWith (=>.)
 
-(==.), (/=.) :: Dool -> Dool -> Dool
-a ==. b = if a == b then true else false - abs (a-b)
+(==.), (/=.) :: Double -> Double -> Dool
+a ==. b = a <=. b &&. b <=. a
 a /=. b = nt (a ==. b)
 
-(==:), (/=:) :: [Dool] -> [Dool] -> [Dool]
+(==:), (/=:) :: [Double] -> [Double] -> [Dool]
 (==:) = zipWith (==.)
 (/=:) = zipWith (/=.)
 
 (<=.), (<.), (>.), (>=.) :: Double -> Double -> Dool
-a <=. b = if a <= b then true + b-a else false - a-b
+a <=. b = if a <= b then pure (1 + b-a) else pure (-1 - a-b)
 a <. b = nt (a >=. b)
 a >. b = b <. a
 a >=. b = b <=. a

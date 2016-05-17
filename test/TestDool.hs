@@ -7,45 +7,56 @@ import Test.Tasty.QuickCheck
 -- import Zelus ()
 import Dool
 
-data D = D Dool deriving (Show)
+data D = D Dool
+
+instance Show D where
+  show (D d) = "truthness = " ++ show (value d)
 
 instance Arbitrary D where
-  arbitrary =
-    do d <- arbitrary
-       return (D (if d >= 0 then d+1 else d-1))
+  arbitrary = arbitrary >>= return . D . (==.0)
 
 -- relations
 
-
-prop_lte_gte_eq :: Double -> Double -> Bool
-prop_lte_gte_eq a b = (lte &&. gte =>. eq) == (eq =>. lte &&. gte)
-  where
-    lte = a <=. b
-    gte = a >=. b
-    eq = a ==. b
-
--- prop_transitive_lte
--- prop_transitive_lt
--- prop_transitive_gt
--- prop_transitive_gte
-
--- prop_antisymmetric_lte
--- prop_antisymmetric_lt
--- prop_antisymmetric_gt
--- prop_antisymmetric_gte
-
-
--- prop_negate_lte
--- prop_negate_lt
--- prop_negate_gt
--- prop_negate_gte
-
--- <=.
--- <.
--- >.
--- >=.
-
-
+prop_transitive_eq d1 d2 d3 =
+  isTrue (d1 ==. d2 &&. d2 ==. d3 =>. d1 ==. d3)
+prop_transitive_lte d1 d2 d3 =
+  isTrue (d1 <=. d2 &&. d2 <=. d3 =>. d1 <=. d3)
+prop_transitive_lt d1 d2 d3 =
+  isTrue (d1 <. d2 &&. d2 <. d3 =>. d1 <. d3)
+prop_transitive_gt d1 d2 d3 =
+  isTrue (d1 >. d2 &&. d2 >. d3 =>. d1 >. d3)
+prop_transitive_gte d1 d2 d3 =
+  isTrue ((d1 >=. d2 &&. d2 >=. d3) =>. (d1 >=. d3))
+prop_antisymmetric_lte d1 d2 =
+  isTrue (d1 <=. d2 &&. d2 <=. d1 =>. d1 ==. d2)
+prop_antisymmetric_gte d1 d2 =
+  isTrue (d1 >=. d2 &&. d2 >=. d1 =>. d1 ==. d2)
+prop_assymetric_lt d1 d2 =
+  isTrue (d1 <. d2 =>. nt (d2 <. d1))
+prop_assymetric_gt d1 d2 =
+  isTrue (d1 >. d2 =>. nt (d2 >. d1))
+prop_reflexive_eq d =
+  isTrue (d ==. d)
+prop_reflexive_lte d =
+  isTrue (d <=. d)
+prop_reflexive_gte d =
+  isTrue (d >=. d)
+prop_not_eq d1 d2 =
+  (d1 ==. d2) == nt (d1 /=. d2)
+prop_not_neq d1 d2 =
+  (d1 /=. d2) == nt (d1 ==. d2)
+prop_not_lte d1 d2 =
+  (d1 <=. d2) == nt (d1 >. d2)
+prop_not_lt d1 d2 =
+  (d1 <. d2) == nt (d1 >=. d2)
+prop_not_gt d1 d2 =
+  (d1 >. d2) == nt (d1 <=. d2)
+prop_not_gte d1 d2 =
+  (d1 >=. d2) == nt (d1 <. d2)
+prop_total_lte d1 d2 =
+  isTrue (d1 <=. d2 ||. d2 <=. d1)
+prop_total_gte d1 d2 =
+  isTrue (d1 >=. d2 ||. d2 >=. d1)
 
 -- logical connectives
 
@@ -94,7 +105,48 @@ main = defaultMain $
     , connectives
     ]
 
-relations =  testGroup "relations" []
+relations =  testGroup "relations"
+  [ testProperty "transitive eq"
+      (prop_transitive_eq :: Double -> Double -> Double -> Bool)
+  , testProperty "transitive lte"
+      (prop_transitive_lte :: Double -> Double -> Double -> Bool)
+  , testProperty "transitive lt"
+      (prop_transitive_lt :: Double -> Double -> Double -> Bool)
+  , testProperty "transitive gt"
+      (prop_transitive_gt :: Double -> Double -> Double -> Bool)
+  , testProperty "transitive gte"
+      (prop_transitive_gte :: Double -> Double -> Double -> Bool)
+  , testProperty "antisymmetric lte"
+      (prop_antisymmetric_lte :: Double -> Double -> Bool)
+  , testProperty ""
+      (prop_antisymmetric_gte :: Double -> Double -> Bool)
+  , testProperty "assymetric lt"
+      (prop_assymetric_lt :: Double -> Double -> Bool)
+  , testProperty "assymetric gt"
+      (prop_assymetric_gt :: Double -> Double -> Bool)
+  , testProperty "reflexive eq"
+      (prop_reflexive_eq :: Double -> Bool)
+  , testProperty "reflexive lte"
+      (prop_reflexive_lte :: Double -> Bool)
+  , testProperty "reflexive gte"
+      (prop_reflexive_gte :: Double -> Bool)
+  , testProperty "not eq"
+      (prop_not_eq :: Double -> Double -> Bool)
+  , testProperty "not neq"
+      (prop_not_neq :: Double -> Double -> Bool)
+  , testProperty "not lte"
+      (prop_not_lte :: Double -> Double -> Bool)
+  , testProperty "not lt"
+      (prop_not_lt :: Double -> Double -> Bool)
+  , testProperty "not gt"
+     (prop_not_gt :: Double -> Double -> Bool)
+  , testProperty "not gte"
+      (prop_not_gte :: Double -> Double -> Bool)
+  , testProperty "total lte"
+      (prop_total_lte :: Double -> Double -> Bool)
+  , testProperty "total gte"
+      (prop_total_gte :: Double -> Double -> Bool)
+  ]
 
 connectives = testGroup "logical connectives"
   [ testProperty "weakened identity con"
