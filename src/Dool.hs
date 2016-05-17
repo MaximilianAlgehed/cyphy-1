@@ -18,7 +18,7 @@ instance Applicative VBool where
   (<*>) = fmap . value
 
 true, false :: Dool
-true  = pure 1
+true  = pure 0.9999999999999  -- how deal with rounding errors?
 false = nt true
 
 trues, falses :: [Dool]
@@ -54,7 +54,7 @@ a /=. b = nt (a ==. b)
 (/=:) = zipWith (/=.)
 
 (<=.), (<.), (>.), (>=.) :: Double -> Double -> Dool
-a <=. b = if a <= b then pure (1 + b-a) else pure (-1 - a-b)
+a <=. b = if a <= b then pure (1 + b - a) else pure (b - a - 1)
 a <. b = nt (a >=. b)
 a >. b = b <. a
 a >=. b = b <=. a
