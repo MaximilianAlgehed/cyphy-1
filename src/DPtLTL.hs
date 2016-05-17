@@ -2,7 +2,6 @@
 -- Based on http://www.kestreltechnology.com/downloads/sttt-tacas02-7.pdf
 module DPtLTL where
 
-import Zelus () -- import instances only
 import Dool
 
 --------------------------------------------------------------------------------
@@ -77,78 +76,10 @@ f1 `intervalw` f2 = always (nts f2) ||: (f1 `intervals` f2)
 
 
 --------------------------------------------------------------------------------
-------- Cyphy specific
----
-
-up :: [Double] -> [Dool]
-up xs = binMap (>.) xs
-
-down :: [Double] -> [Dool]
-down xs = binMap (<.) xs
-
--- | After a reset the value must be in the margin of the reference within the
--- given time.
-steady :: [Double] -- ^ Reference
-       -> [Double] -- ^ Actual value
-       -> [Dool]   -- ^ Resets, usually reference change
-       -> Int      -- ^ Number of samples to hold delay
-       -> Double   -- ^ Allowed deviation from reference
-       -> [Dool]
-steady ref act resets samples margin =
-    always (holdw resets samples ||: bounded)
-  where
-    bounded = abs (1 - ref/act) <: repeat margin
-
--- | The value must not overshoot the reference by more than the given margin.
-overshoot :: [Double] -- ^ Reference
-          -> [Double] -- ^ Actual value
-          -> Double   -- ^ Allowed overshoot
-          -> [Dool]
-overshoot ref act margin =
-    always ((begin (up ref) `intervalw` end (down ref)) =>: bounded)
-  where
-    bounded = act/ref - 1 <: repeat margin
-
--- | The value must not undershoot the reference by more than the given margin.
-undershoot :: [Double] -- ^ Reference
-           -> [Double] -- ^ Actual value
-           -> Double   -- ^ Allowed undershoot
-           -> [Dool]
-undershoot ref act margin =
-    always ((begin (down ref) `intervalw` end (up ref)) =>: bounded)
-  where
-    bounded = ref/act - 1 <: repeat margin
-
--- | The value must rise from 5% of reference to 95% of reference within
--- the given time.
-rise :: [Double] -- ^ Reference
-     -> [Double] -- ^ Actual value
-     -> Int      -- ^ Allowed time in samples
-     -> [Dool]
-rise ref act samples = always limit
-  where
-    lower = up (act >=: ref * 0.05)
-    upper = up (act >=: ref * 0.95)
-    limit = (holdw (begin lower) samples ||: once upper) `sincew` begin lower
-
--- | The value must fall from 95% of reference to 5% of reference within
--- the given time.
-fall :: [Double] -- ^ Reference
-     -> [Double] -- ^ Actual value
-     -> Int      -- ^ Allowed time in samples
-     -> [Dool]
-fall ref act samples = always limit
-  where
-    lower = down (act >=: ref * 0.05)
-    upper = down (act >=: ref * 0.95)
-    limit = (holdw (begin upper) samples ||: once lower) `sincew` begin upper
-
-
---------------------------------------------------------------------------------
 ------- Utilities
 ---
 
--- | Apply a binary function to pairs of neighboring elements in a list.
+-- | Apply a binary function to neighboring elements in a list.
 --
 -- > binMap f [x_1, x_2, x_3, .., x_n]
 -- > =
