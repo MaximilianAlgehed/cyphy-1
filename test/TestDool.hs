@@ -1,6 +1,5 @@
 module TestDool where
 
-import Test.QuickCheck
 import Test.Tasty
 import Test.Tasty.QuickCheck
 
@@ -118,7 +117,7 @@ main = defaultMain $
     , connectives
     ]
 
-relations =  testGroup "relations"
+relations = testGroup "relations"
   [ testProperty "transitive eq" prop_transitive_eq_1
   , testProperty "transitive eq edge case" prop_transitive_eq_2
   , testProperty "transitive lte" prop_transitive_lte_1
