@@ -8,7 +8,6 @@ module WaterHeater where
 import Control.Applicative ((<|>))
 
 import Zelus
-import CyphyUtils
 
 data TankState = T1 | T2 | T3 | T4 deriving (Eq, Show)
 
