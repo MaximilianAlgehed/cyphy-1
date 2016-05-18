@@ -33,15 +33,19 @@ prop_11 f = end f == begin (nts f)
 prop_12 f = begin f == end (nts f)
 prop_13 f1 f2 = f1 `intervalw` f2 == (always (nts f2) ||: (f1 `intervals` f2))
 prop_14 f1 f2 = f1 `intervals` f2 == (once f1 &&: (f1 `intervalw` f2))
-prop_15 f = prev f == ((f =>: nts (begin f)) &&: (nts f =>: end f))
+prop_15 f = init (prev f) == ((f =>: nts (begin f)) &&: (nts f =>: end f))
 prop_16 f1 f2 = f1 `sinces` f2 == (f2 ||: (prev f2 `intervals` nts f1))
+
+prop_abs_unchanged_strong f n = n >= 0 ==> dabs f == dabs (holds f n)
+prop_abs_unchanged_weak f n = n >= 0 ==> dabs f == dabs (holdw f n)
 
 main = defaultMain $
   testGroup "test dptltl"
-    [ props
+    [ baseprops
+    , holdprops
     ]
 
-props = testGroup "properties"
+baseprops = testGroup "base properties"
   [ testProperty "prop 1" prop_1
   , testProperty "prop 2" prop_2
   , testProperty "prop 3" prop_3
@@ -56,6 +60,15 @@ props = testGroup "properties"
   , testProperty "prop 12" prop_12
   , testProperty "prop 13" prop_13
   , testProperty "prop 14" prop_14
-  , testProperty "prop 15" prop_15
+  , testProperty "weakened prop 15" prop_15
   , testProperty "prop 16" prop_16
   ]
+
+holdprops = testGroup "hold properties"
+  [ testProperty "abs unchanged strong" prop_abs_unchanged_strong
+  , testProperty "abs unchanged weak" prop_abs_unchanged_weak
+  ]
+
+-- utility
+
+dabs f = f ||: nts f
