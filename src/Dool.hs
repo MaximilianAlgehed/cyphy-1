@@ -1,7 +1,17 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Dool where
+module Dool
+       ( Dool
+       , true, false
+       , isTrue, isFalse
+       , trues, falses
+       , nt, nts
+       , (&&.), (||.), (=>.)
+       , (&&:), (||:), (=>:)
+       , (==.), (/=.), (<=.), (<.), (>.), (>=.)
+       , (==:), (/=:), (<=:), (<:), (>:), (>=:)
+       ) where
 
 infixr 1 =>. , =>:
 infixr 2 ||. , ||:
