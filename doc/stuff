@@ -53,12 +53,13 @@ Specifying properties.
     Past LTL.
     Monitors.
     STL.
-    
+
 
 Next meeting.
     Only 4 weeks remaining.
     Paper?
     Maybe shrinking is not the beat way of reducing noice in counter examples?
-    
 
 
+
+run properties in parallel to gain speedups
