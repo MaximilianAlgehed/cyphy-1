@@ -30,11 +30,12 @@ f1 `sinces` f2 = f2 ||: (f1 &&: (head f2 : f1 `sinces` f2))
 sincew :: [Dool] -> [Dool] -> [Dool]
 f1 `sincew` f2 = always f1 ||: (f1 `sinces` f2)
 
--- | If f holds in some moment then true is repeated for another
--- (samples - 1) moments.
+-- | If f held in some moment then f held for another (samples - 1)
+-- consecutive moments.
 holds :: [Dool] -> Int -> [Dool]
 holds f samples = go f 0
   where
+    go [] _ = []
     go (d:ds) n
       | isTrue d = d : go ds (samples - 1)
       | n == 0 = d : go ds 0
