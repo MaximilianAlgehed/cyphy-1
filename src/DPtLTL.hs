@@ -10,11 +10,11 @@ import Dool
 
 -- | f held in the previous moment.
 prev :: [Dool] -> [Dool]
-prev f = false:f
+prev f = head f : f
 
 -- | f held at some past moment.
 once :: [Dool] -> [Dool]
-once f = scanl1 (||.) f
+once = scanl1 (||.)
 
 -- | f has held in all past moments.
 always :: [Dool] -> [Dool]
@@ -23,7 +23,7 @@ always = scanl1 (&&.)
 -- | Strong since.
 -- "f2 held at some moment in the past and, since then, f1 held all the time"
 sinces :: [Dool] -> [Dool] -> [Dool]
-f1 `sinces` f2 = f2 ||: (f1 &&: (head f1 : f1 `sinces` f2))
+f1 `sinces` f2 = f2 ||: (f1 &&: (head f2 : f1 `sinces` f2))
 
 -- | Weak since.
 -- "either f1 was true all the time or f1 `sinces` f2"
@@ -52,42 +52,25 @@ holdw f samples = always (nts f) ||: holds f samples
 -- | In the previus moment f held, but not in this one.
 -- It is unclear which truth values to use.
 begin :: [Dool] -> [Dool]
-begin = binMap op
-  where
-    op last now = if isTrue last && isFalse now then last else now &&. nt now
+begin f = f &&: nts (prev f)
 
 -- | In the previous moment f didn't hold, but it does in this one.
 -- It is unclear which truth values to use.
 end :: [Dool] -> [Dool]
-end = binMap op
-  where
-    op last now = if isFalse last && isTrue now then now else now &&. nt now
+end f = nts f &&: prev f
 
 -- | Strong interval.
 -- "f1 held at some moment in the past and f2 has not held
 -- since then (inclusive)"
 intervals ::  [Dool] -> [Dool] -> [Dool]
-f1 `intervals` f2 = nts f2 &&: (f1 ||: (head f1 : f1 `intervals` f2))
+f1 `intervals` f2 =
+  let ntf2 = nts f2 in ntf2 &&: (prev ntf2 `sinces` f1)
 
 -- | Weak interval.
 -- "f2 has never been true or f1 `intervals` f2"
 intervalw ::  [Dool] -> [Dool] -> [Dool]
-f1 `intervalw` f2 = always (nts f2) ||: (f1 `intervals` f2)
-
-
---------------------------------------------------------------------------------
-------- Utilities
----
-
--- | Apply a binary function to neighboring elements in a list.
---
--- > binMap f [x_1, x_2, x_3, .., x_n]
--- > =
--- > [f x_1 x_1, f x_1 x_2, f x_2 x_3, .., f x_(n-1) f x_n]
-binMap :: (a -> a -> b) -> [a] -> [b]
-binMap f [] = []
-binMap f xs = zipWith f (head xs : xs) xs
-
+f1 `intervalw` f2 =
+  let ntf2 = nts f2 in ntf2 &&: (prev ntf2 `sincew` f1)
 
 ---
 ------- Draxx them sklounst
