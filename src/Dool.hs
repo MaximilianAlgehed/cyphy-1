@@ -1,3 +1,6 @@
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 module Dool where
 
 infixr 1 =>. , =>:
@@ -6,9 +9,12 @@ infixr 3 &&. , &&:
 infix 4 <=. , <. , >. , >=. , ==. , /=.
 infix 4 <=: , <: , >: , >=: , ==: , /=:
 
-newtype VBool a = VBool { value :: a } deriving (Show, Eq, Ord)
+newtype VBool a = VBool { value :: a } deriving (Eq, Ord)
 
 type Dool = VBool Double
+
+instance Show Dool where
+  show d = (if isTrue d then 't' else 'f') : ':' : show (value d)
 
 instance Functor VBool where
   fmap f = pure . f . value
