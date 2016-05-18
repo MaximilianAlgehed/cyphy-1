@@ -18,7 +18,6 @@ data BurnerState = B1 | B2 | B3 | B4 deriving (Eq, Show)
 
 data ThermoEvent = UP95 | DW93 deriving (Eq, Show)
 
---run :: S Double -> (S Double, E ThermoEvent, E BurnerEvent)
 run :: Double -> Double -> S Double -> (S Double, E BurnerEvent)
 run dy dz ref_temp =
     let
@@ -93,12 +92,3 @@ thermo dz ref_temp temperature = (up <|> down)
     down = val DW93 `when` (temperature <=? min_temp &&? samples)
 
     z = integ (val dz `in1t` 0 `reset` (0 `when` samples))
-
------------------------------------------------
------ Examples
----
-
--- tex = let ?h = 0.01 in thermo tempdown
-
-tempdown = [100 - t*0.1 | t <- [0..200]]
-tempup = [80 + t*0.1 | t <- [0..200]]
