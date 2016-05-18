@@ -8,7 +8,7 @@ import Dool
 data D = D Dool
 
 instance Show D where
-  show (D d) = "truthness = " ++ show (value d)
+  show (D d) = show d
 
 instance Arbitrary D where
   arbitrary = arbitrary >>= return . D . (==.0)
