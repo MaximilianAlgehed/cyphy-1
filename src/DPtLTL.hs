@@ -5,12 +5,26 @@ module DPtLTL where
 import Dool
 
 --------------------------------------------------------------------------------
+------- Helpers
+---
+
+constant :: Double -> [Double]
+constant = repeat
+
+up, down, change :: [Double] -> [Dool]
+up xs = prev xs <: xs
+down xs = prev xs >: xs
+change xs = up xs ||: down xs
+
+
+--------------------------------------------------------------------------------
 ------- Temporal operators
 ---
 
 -- | f held in the previous moment.
-prev :: [Dool] -> [Dool]
-prev f = head f : f
+prev :: [a] -> [a]
+prev [] = []
+prev (x:xs) = x:x:xs
 
 -- | f held at some past moment.
 once :: [Dool] -> [Dool]
