@@ -16,6 +16,8 @@ up xs = prev xs <: xs
 down xs = prev xs >: xs
 change xs = up xs ||: down xs
 
+start :: [Dool]
+start = true : repeat false
 
 --------------------------------------------------------------------------------
 ------- Temporal operators
