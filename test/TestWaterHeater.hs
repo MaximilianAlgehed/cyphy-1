@@ -42,12 +42,12 @@ instance Arbitrary Case where
        return (Case raw dy dz (mkRef raw))
 
   shrink (Case raw dy dz ref) =
-    let --dys = (dy `shrinkTo` 1) `limitTo` 3
-        --dzs = (dz `shrinkTo` 1) `limitTo` 3
+    let dys = take 3 (dy `shrinkTo` 1)
+        dzs = take 3 (dz `shrinkTo` 1)
         raws = shrinks raw -- no shrinking dt or r currently
     in [Case raw' dy dz (mkRef raw') | raw' <- raws, not (null raw')]
-        -- ++ [Case raw dy' dz ref | dy' <- dys]
-        --   ++ [Case raw dy dz' ref | dz' <- dzs]
+         ++ [Case raw dy' dz ref | dy' <- dys]
+           ++ [Case raw dy dz' ref | dz' <- dzs]
 
 shrinks :: [a] -> [[a]]
 shrinks xs = filter ((<m).length) [xs1, xs2, xs3, xs4, xs5, xs6, xs7]
