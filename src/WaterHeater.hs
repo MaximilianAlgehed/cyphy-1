@@ -17,15 +17,14 @@ data BurnerState = B1 | B2 | B3 | B4 deriving (Eq, Show)
 
 data ThermoEvent = UP95 | DW93 deriving (Eq, Show)
 
-run :: Double -> Double -> S Double -> (S Double, E BurnerEvent)
+run :: (?h :: Double)
+    => Double -> Double -> S Double -> (S Double, E BurnerEvent)
 run dy dz ref_temp =
     let
       temperature = tank burner_events
       burner_events = burner dy thermo_events
       thermo_events = thermo dz ref_temp temperature
     in (temperature, burner_events)
-  where
-    ?h = 0.01
 
 tank :: (?h :: Double) => E BurnerEvent -> S Double
 tank burner_event = temperature
@@ -47,8 +46,9 @@ tank burner_event = temperature
     k1 _  = 0
 
     state = automaton
-      [ T1 >-- temperature >=? max_temp --> T2
+      [ T4 >-- burner_event `isEvent` val ON --> T1
       , T1 >-- burner_event `isEvent` val OFF --> T3
+      , T1 >-- temperature >=? max_temp --> T2
       , T2 >-- burner_event `isEvent` val OFF --> T3
       , T3 >-- burner_event `isEvent` val ON --> T1
       , T3 >-- temperature <=? min_temp --> T4
