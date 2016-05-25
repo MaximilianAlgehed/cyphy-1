@@ -39,7 +39,18 @@ always = scanl1 (&&.)
 -- | Strong since.
 -- "f2 held at some moment in the past and, since then, f1 held all the time"
 sinces :: [Dool] -> [Dool] -> [Dool]
-f1 `sinces` f2 = f2 ||: (f1 &&: (head f2 : f1 `sinces` f2))
+as `sinces` bs = go_passive as bs
+  where
+    go_active (a:as) (b:bs) =
+      let aorb = a ||. b
+      in aorb : if isTrue aorb then go_active as bs else go_passive as bs
+    go_active [] _ = []
+    go_active _ [] = []
+
+    go_passive (a:as) (b:bs) =
+      b : if isTrue b then go_active as bs else go_passive as bs
+    go_passive [] _ = []
+    go_passive _ [] = []
 
 -- | Weak since.
 -- "either f1 was true all the time or f1 `sinces` f2"
@@ -77,7 +88,7 @@ end :: [Dool] -> [Dool]
 end f = nts f &&: prev f
 
 -- | Strong interval.
--- "f1 held at some moment in the past and f2 has not held
+-- "f1 occured at some moment in the past and f2 has not occured
 -- since then (inclusive)"
 intervals ::  [Dool] -> [Dool] -> [Dool]
 f1 `intervals` f2 =

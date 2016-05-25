@@ -9,7 +9,7 @@ module TestDPtLTL where
 
 import Test.Tasty
 import Test.Tasty.QuickCheck hiding (once)
-
+import Test.QuickCheck (quickCheck)
 import Dool
 import DPtLTL
 
@@ -39,10 +39,14 @@ prop_16 f1 f2 = f1 `sinces` f2 == (f2 ||: (prev f2 `intervals` nts f1))
 prop_abs_unchanged_strong f n = n >= 0 ==> dabs f == dabs (holds f n)
 prop_abs_unchanged_weak f n = n >= 0 ==> dabs f == dabs (holdw f n)
 
+f1 `sinces1` f2 = f2 ||: (f1 &&: (head f2 : f1 `sinces1` f2))
+prop_sinces_model f1 f2 = f1 `sinces` f2 == f1 `sinces1` f2
+
 main = defaultMain $
   testGroup "test dptltl"
     [ baseprops
     , holdprops
+    , sincesprops
     ]
 
 baseprops = testGroup "base properties"
@@ -67,6 +71,10 @@ baseprops = testGroup "base properties"
 holdprops = testGroup "hold properties"
   [ testProperty "abs unchanged strong" prop_abs_unchanged_strong
   , testProperty "abs unchanged weak" prop_abs_unchanged_weak
+  ]
+
+sincesprops = testGroup "faster sinces test"
+  [ testProperty "check against sinces1" prop_sinces_model
   ]
 
 -- utility
