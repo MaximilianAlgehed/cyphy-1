@@ -8,7 +8,8 @@ import Test.Tasty
 import Test.Tasty.QuickCheck
 import Test.QuickCheck
 
-import Zelus (val,  isEvent)
+import Zelus (val, isEvent, unE)
+
 import Dool
 import DPtLTL
 
@@ -41,12 +42,25 @@ instance Arbitrary Case where
        return (Case raw dy dz (mkRef raw))
 
   shrink (Case raw dy dz ref) =
-    let dys = (dy `shrinkTo` 1) `limitTo` 3
-        dzs = (dz `shrinkTo` 1) `limitTo` 3
-        raws = shrinkList (\x -> [x]) raw -- no shrinking dt or r currently
+    let --dys = (dy `shrinkTo` 1) `limitTo` 3
+        --dzs = (dz `shrinkTo` 1) `limitTo` 3
+        raws = shrinks raw -- no shrinking dt or r currently
     in [Case raw' dy dz (mkRef raw') | raw' <- raws, not (null raw')]
-         ++ [Case raw dy' dz ref | dy' <- dys]
-           ++ [Case raw dy dz' ref | dz' <- dzs]
+        -- ++ [Case raw dy' dz ref | dy' <- dys]
+        --   ++ [Case raw dy dz' ref | dz' <- dzs]
+
+shrinks :: [a] -> [[a]]
+shrinks xs = filter ((<m).length) [xs1, xs2, xs3, xs4, xs5, xs6, xs7]
+  where
+    m = length xs
+    n = m `div` 3
+    xs1 = take n xs
+    xs2 = take n (drop n xs)
+    xs3 = drop (2*n) xs
+    xs4 = xs1 ++ xs2
+    xs5 = xs1 ++ xs3
+    xs6 = xs2 ++ xs3
+    xs7 = xs2 ++ xs1
 
 interleave :: [a] -> [a] -> [a]
 interleave [] ys = ys
@@ -82,14 +96,16 @@ mkRef [(_, r)] = repeat r
 mkRef ((dt, r):dtrs) = replicate (round (tmax/h)) r ++ mkRef dtrs
 
 h :: Double
-h = 0.1
+h = 0.05
 
 tmax :: Double
 tmax = 100
 
 samples :: Int
-samples = round (tmax/h)
+samples = t2s tmax
 
+t2s :: Double -> Int
+t2s = round . (/h)
 
 -- | (R1) the temperature in the tank must never reach 100 degrees.
 prop_R1_bool = isTrue . prop_R1_dool
@@ -111,9 +127,9 @@ prop_R2_bool = isTrue . prop_R2_dool
 prop_R2_dool = foldl1 (&&.) . take samples . prop_R2_dools
 prop_R2_dools (Case _ dy dz ref) = nts settling =>: stable
   where
-    settling = holdw (change ref) n
+    settling = holds (change ref ||: start) n
     stable = ref - constant 3 <=: temp &&: temp <=: ref + constant 3
-    n = round (15/h)
+    n = t2s 15
     (temp, _) = let ?h = h in run dy dz ref
 
 
@@ -121,15 +137,24 @@ prop_R2_dools (Case _ dy dz ref) = nts settling =>: stable
 -- more than two seconds.
 prop_R3_bool = isTrue . prop_R3_dool
 prop_R3_dool = foldl1 (&&.) . take samples . prop_R3_dools
-prop_R3_dools (Case _ dy dz ref) = nts settling =>: stable
+prop_R3_dools (Case _ dy dz ref) =
+    nts is_settling  =>: (nts is_on ||: on_timer)
   where
-    limit = round (2/h)
-    time = burner `isEvent` val ON
-    settling = holdw (change ref) n
-    stable = ref - constant 3 <=: temp &&: temp <=: ref + constant 3
-    n = round (10/h)
+    turned_on = fromBools (burner `isEvent` val ON)
+    turned_off = fromBools (burner `isEvent` val OFF)
+    is_on = turned_on `intervals` turned_off
+
+    settling_time = t2s 15
+    is_settling = holds (change ref ||: start) settling_time
+
+    resets = end is_settling &&: is_on ||: nts is_settling &&: turned_on
+    max_on = t2s 2
+    on_timer = holds resets max_on
+
     (temp, burner) = let ?h = h in run dy dz ref
 
+prop_not_on_when_on = undefined
+prop_not_off_when_off = undefined
 
 main = defaultMain $ testGroup "test water heater" [props]
 
