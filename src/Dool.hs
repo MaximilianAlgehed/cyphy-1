@@ -45,6 +45,9 @@ isTrue, isFalse :: Dool -> Bool
 isTrue = (>= true)
 isFalse = (<= false)
 
+fromBool :: Bool -> Dool
+fromBool b = if b then true else false
+
 nt :: Dool -> Dool
 nt = fmap negate
 
