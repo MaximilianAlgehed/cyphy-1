@@ -3,6 +3,8 @@
 
 module Dool
        ( Dool
+       , fromBool
+       , fromBools
        , true, false
        , isTrue, isFalse
        , trues, falses
@@ -33,6 +35,12 @@ instance Applicative VBool where
   pure = VBool
   (<*>) = fmap . value
 
+fromBool :: Bool -> Dool
+fromBool b = if b then true else false
+
+fromBools :: [Bool] -> [Dool]
+fromBools = map fromBool
+
 true, false :: Dool
 true  = pure 1 -- how deal with rounding errors? this fails many tests
 false = nt true
@@ -44,9 +52,6 @@ falses = repeat false
 isTrue, isFalse :: Dool -> Bool
 isTrue = (>= true)
 isFalse = (<= false)
-
-fromBool :: Bool -> Dool
-fromBool b = if b then true else false
 
 nt :: Dool -> Dool
 nt = fmap negate
