@@ -153,8 +153,15 @@ prop_R3_dools (Case _ dy dz ref) =
 
     (temp, burner) = let ?h = h in run dy dz ref
 
-prop_not_on_when_on = undefined
-prop_not_off_when_off = undefined
+prop_alternating_on_off_bool = isTrue . prop_R3_dool
+prop_alternating_on_off_dool =
+  foldl1 (&&.) . take samples . prop_alternating_on_off_dools
+prop_alternating_on_off_dools (Case _ dy dz ref) =
+    (ons `intervalw` offs) &&: (offs `intervalw` ons)
+  where
+    ons = fromBools (burner `isEvent` val ON)
+    offs = fromBools (burner `isEvent` val OFF)
+    (_, burner) = let ?h = h in run dy dz ref
 
 main = defaultMain $ testGroup "test water heater" [props]
 
