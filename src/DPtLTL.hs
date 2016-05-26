@@ -44,13 +44,11 @@ as `sinces` bs = go_passive as bs
     go_active (a:as) (b:bs) =
       let aorb = a ||. b
       in aorb : if isTrue aorb then go_active as bs else go_passive as bs
-    go_active [] _ = []
-    go_active _ [] = []
+    go_active _ _ = []
 
     go_passive (a:as) (b:bs) =
       b : if isTrue b then go_active as bs else go_passive as bs
-    go_passive [] _ = []
-    go_passive _ [] = []
+    go_passive _ _ = []
 
 -- | Weak since.
 -- "either f1 was true all the time or f1 `sinces` f2"
@@ -62,11 +60,11 @@ f1 `sincew` f2 = always f1 ||: (f1 `sinces` f2)
 holds :: [Dool] -> Int -> [Dool]
 holds f samples = go f 0
   where
-    go [] _ = []
     go (d:ds) n
       | isTrue d = d : go ds (samples - 1)
       | n == 0 = d : go ds 0
       | otherwise = nt d : go ds (n - 1)
+    go _ _ = []
 
 -- | Either f was always false or holds f samples.
 holdw :: [Dool] -> Int -> [Dool]
