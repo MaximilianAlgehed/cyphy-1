@@ -11,7 +11,8 @@ data Gear = One | Two | Three | Four | Five deriving (Eq, Show)
 
 data Mode = Eco | Normal deriving (Eq, Show)
 
-run :: Double   -- ^ Initial speed, m/s
+run :: (?h :: Double)
+    => Double   -- ^ Initial speed, m/s
     -> S Mode   -- ^ Controller mode
     -> S Double -- ^ Cruise control speed setting, m/s
     -> S Double -- ^ Road slope (disturbance), rad
@@ -23,8 +24,6 @@ run v0 mode ref road_slope =
       v = integ (acc `in1t` val v0)
       v_stable = (v <? 0.005) ? (0,v)
     in v_stable
-  where
-    ?h = 0.01
 
 vehicle :: S Double -- ^ Velocity, m/s
         -> S Double -- ^ Accelerator ratio, [0, 1]
