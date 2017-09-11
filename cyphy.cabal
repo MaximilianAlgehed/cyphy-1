@@ -19,6 +19,7 @@ library
                      , NotQuickCheck
                      , CyphyUtils
                      , WaterHeater
+                     , VBool
   build-depends:       base >= 4.7 && < 5
                      , QuickCheck >= 2.8.1
                      , random >= 1.1
