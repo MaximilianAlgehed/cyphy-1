@@ -3,6 +3,7 @@ module Main where
 import Zelus
 import Optimize
 import Plot
+import VBool
 
 import Data.List( nub, sortOn )
 import Test.QuickCheck
@@ -75,7 +76,7 @@ cgood = (5.0e-3,1.1446889636416996e-4,5.0e-3)
 --------------------------------------------------------------------------------
 -- properties
 
-main = quickCheck prop_ReactFast
+main = quickCheckWith stdArgs{ maxSuccess = 1000 } prop_ReactFast'
 
 prop_ReactFast (GoalTemp _ goalTemp) =
   whenFail (plot "failed" 300
@@ -83,7 +84,7 @@ prop_ReactFast (GoalTemp _ goalTemp) =
             , ("goal",graph goalTemp)
             , ("room",graph roomTemp)
             -- , ("stable", stableFor)
-            , ("diff", graph $ let d = 10 * abs (roomTemp - goalTemp) in d `mn` 50)
+            , ("diff", graph $ let d = 5 * abs (roomTemp - goalTemp) in d `mn` 50)
             ]) $
   for tot $
     ok
@@ -92,7 +93,7 @@ prop_ReactFast (GoalTemp _ goalTemp) =
 
   --ok = errTemp <? ((200 / stableFor) `mx` 1)
 
-  ok = (stableFor >=? 150) ? (errTemp <=? 1, val True)
+  ok = (stableFor >=? 50) ? (errTemp <=? 1, val True)
 
   errTemp  = abs (goalTemp - roomTemp)
   roomTemp = plant pump
@@ -117,7 +118,7 @@ instance Show GoalTemp where
 
 instance Arbitrary GoalTemp where
   arbitrary =
-    do ds <- listOf (do t <- choose (10,30)
+    do ds <- listOf (do t <- choose (15,25)
                         n <- choose (0,100)
                         return (n,t)) `suchThat` (not . null)
        return (goalTemp ds)
@@ -147,6 +148,53 @@ prop_Shrink (Fixed g@(GoalTemp _ _)) =
   g `notElem` take 1000 (xs ++ concatMap shrink xs)
  where
   xs = take 100 $ shrink g
+
+--------------------------------------------------------------------------------
+
+instance Severity GoalTemp where
+  severity (GoalTemp _ goalTemp) = 
+    for' tot $
+      ok
+   where
+    tot = 1000
+
+    --ok = errTemp <? ((200 / stableFor) `mx` 1)
+
+    ok = (stableFor >=? 50) ? (zipWith (<=.) errTemp (val 1), val true)
+
+    errTemp  = abs (goalTemp - roomTemp)
+    roomTemp = plant pump
+    pump     = controller cgood goalTemp roomTemp
+
+    stableFor = n
+     where
+      --n = 1 |> (goalTemp ==? pre goalTemp ? (pre n+1,1))
+      n = integ (1 `in1t` 1 `reset` (1 `when` (goalTemp /=? pre goalTemp)))
+
+for' n = foldr1 (&&+) . take n
+
+prop_ReactFast' s@(Severe (GoalTemp _ goalTemp) _) =
+  whenFail (plot "failed" 300
+            [ ("ok", graph (map trueness ok))
+            , ("goal",graph goalTemp)
+            , ("room",graph roomTemp)
+            , ("diff", graph $ let d = 5 * abs (roomTemp - goalTemp) in d `mn` 50)
+            ]) $
+  --whenFail' (print (severity s)) $
+    s
+ where
+  tot = 1000
+
+  ok = (stableFor >=? 50) ? (zipWith (<=.) errTemp (val 1), val true)
+
+  errTemp  = abs (goalTemp - roomTemp)
+  roomTemp = plant pump
+  pump     = controller cgood goalTemp roomTemp
+
+  stableFor = n
+   where
+    --n = 1 |> (goalTemp ==? pre goalTemp ? (pre n+1,1))
+    n = integ (1 `in1t` 1 `reset` (1 `when` (goalTemp /=? pre goalTemp)))
 
 --------------------------------------------------------------------------------
 -- show a given controller
@@ -199,12 +247,13 @@ main1 =
      print (analyze cgood)
      print (fit cgood)
      display "good" (controller cgood goalTemp)
-  
+{-  
      putStrLn "-- the best (?) controller --"
      print cbest
      print (analyze cbest)
      print (fit cbest)
      display "best" (controller cbest goalTemp)
+-}
  where
   goalTemp = repeat 20 -- replicate 60 20 ++ repeat 15
 
